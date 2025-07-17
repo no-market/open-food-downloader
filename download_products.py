@@ -59,15 +59,26 @@ def save_first_record(record: Dict[str, Any]) -> None:
 
 
 def print_records(records: List[Dict[str, Any]]) -> None:
-    """Print records to console as raw data."""
+    """Print records to console in {index}: {code} format."""
     if not records:
         print("No records to display")
         return
     
-    for i, record in enumerate(records, 1):
-        print(f"RECORD {i}:")
-        print(json.dumps(record, indent=2, ensure_ascii=False))
-        print()
+    for i, record in enumerate(records):
+        code = record.get('code', 'unknown')
+        print(f"{i}: {code}")
+
+
+def load_fallback_data() -> List[Dict[str, Any]]:
+    """Load fallback data from first_record.json if available."""
+    try:
+        with open('first_record.json', 'r', encoding='utf-8') as f:
+            record = json.load(f)
+        print("Using fallback data from first_record.json")
+        return [record]
+    except Exception as e:
+        print(f"Error loading fallback data: {e}")
+        return []
 
 
 def main():
@@ -79,6 +90,10 @@ def main():
     
     # Try to download from Hugging Face
     records = download_from_huggingface()
+    
+    # If no records downloaded, try fallback data
+    if not records:
+        records = load_fallback_data()
     
     # Print the records to console
     print_records(records)
