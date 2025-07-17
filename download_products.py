@@ -8,9 +8,11 @@ import json
 import sys
 import traceback
 from typing import List, Dict, Any
+from retry import retry
+from requests.exceptions import ConnectionError
 
 
-
+@retry(ConnectionError, tries=3, delay=2)
 def download_from_huggingface() -> List[Dict[str, Any]]:
     """Download first 5 records from the OpenFoodFacts dataset on Hugging Face."""
     try:
