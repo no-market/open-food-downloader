@@ -9,66 +9,6 @@ import sys
 from typing import List, Dict, Any
 
 
-def get_mock_data() -> List[Dict[str, Any]]:
-    """Returns mock data for testing when internet access is not available."""
-    return [
-        {
-            "code": "3017620422003",
-            "product_name": "Nutella",
-            "brands": "Ferrero",
-            "categories": "Spreads, Sweet spreads, Cocoa and hazelnuts spreads",
-            "countries": "France",
-            "ingredients_text": "Sugar, Palm Oil, Hazelnuts (13%), Skimmed Milk Powder (8.7%), Fat-reduced Cocoa (7.4%)",
-            "nutrition_grades": "e",
-            "main_category": "en:sweet-spreads",
-            "created_datetime": "2023-01-15T10:30:00Z"
-        },
-        {
-            "code": "3033710065967",
-            "product_name": "Coca-Cola",
-            "brands": "Coca-Cola",
-            "categories": "Beverages, Carbonated drinks, Sodas",
-            "countries": "France, Germany, Spain",
-            "ingredients_text": "Carbonated water, sugar, caramel color, phosphoric acid, natural flavor, caffeine",
-            "nutrition_grades": "d",
-            "main_category": "en:sodas",
-            "created_datetime": "2023-02-10T14:25:00Z"
-        },
-        {
-            "code": "8000500037515",
-            "product_name": "Barilla Spaghetti",
-            "brands": "Barilla",
-            "categories": "Plant-based foods, Cereals and their products, Pasta",
-            "countries": "Italy, France, Germany",
-            "ingredients_text": "Durum wheat semolina, water",
-            "nutrition_grades": "a",
-            "main_category": "en:pasta",
-            "created_datetime": "2023-03-05T09:15:00Z"
-        },
-        {
-            "code": "3229820787015",
-            "product_name": "Danone Yogurt",
-            "brands": "Danone",
-            "categories": "Dairy products, Fermented dairy products, Yogurts",
-            "countries": "France",
-            "ingredients_text": "Whole milk, live yogurt cultures (L. bulgaricus, S. thermophilus)",
-            "nutrition_grades": "b",
-            "main_category": "en:yogurts",
-            "created_datetime": "2023-04-12T16:45:00Z"
-        },
-        {
-            "code": "3560070462414",
-            "product_name": "Lay's Classic Chips",
-            "brands": "Lay's",
-            "categories": "Snacks, Salty snacks, Appetizers, Chips and fries, Potato chips",
-            "countries": "France, Belgium, Netherlands",
-            "ingredients_text": "Potatoes, vegetable oils, salt",
-            "nutrition_grades": "d",
-            "main_category": "en:potato-chips",
-            "created_datetime": "2023-05-20T11:30:00Z"
-        }
-    ]
-
 
 def download_from_huggingface() -> List[Dict[str, Any]]:
     """Download first 5 records from the OpenFoodFacts dataset on Hugging Face."""
@@ -99,7 +39,6 @@ def download_from_huggingface() -> List[Dict[str, Any]]:
         return []
     except Exception as e:
         print(f"❌ Error downloading from Hugging Face: {e}")
-        print("🔄 Falling back to mock data for demonstration...")
         return []
 
 
@@ -154,11 +93,6 @@ def main():
     
     # Try to download from Hugging Face
     records = download_from_huggingface()
-    
-    # Fall back to mock data if download failed
-    if not records:
-        print("🔄 Using mock data for demonstration...")
-        records = get_mock_data()
     
     # Print the records to console
     print_records(records)
