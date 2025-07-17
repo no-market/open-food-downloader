@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Script to download and extract food records from OpenFoodFacts dataset.
-Downloads first 5 records from the Hugging Face dataset and prints them to console.
+Downloads and iterates through the entire Hugging Face dataset, printing each record to console.
 """
 
 import json
@@ -11,7 +11,7 @@ from typing import List, Dict, Any
 
 
 def download_from_huggingface() -> List[Dict[str, Any]]:
-    """Download first 5 records from the OpenFoodFacts dataset on Hugging Face."""
+    """Download all records from the OpenFoodFacts dataset on Hugging Face."""
     try:
         from datasets import load_dataset
         
@@ -22,14 +22,13 @@ def download_from_huggingface() -> List[Dict[str, Any]]:
         dataset = load_dataset('openfoodfacts/product-database', split='food', streaming=True)
         
         print("Dataset loaded successfully!")
-        print("Extracting first 5 records...")
+        print("Extracting all records...")
         
         records = []
         for i, record in enumerate(dataset):
-            if i >= 5:
-                break
             records.append(record)
-            print(f"Record {i+1}: {len(record)} fields")
+            if (i + 1) % 1000 == 0:  # Progress indicator every 1000 records
+                print(f"Processed {i + 1} records...")
         
         print(f"Successfully downloaded {len(records)} records")
         
@@ -84,7 +83,7 @@ def load_fallback_data() -> List[Dict[str, Any]]:
 def main():
     """Main function to download and display food records."""
     print("OpenFoodFacts Product Downloader")
-    print("Downloading first 5 food records from dataset")
+    print("Downloading entire food records dataset")
     print("Source: https://huggingface.co/datasets/openfoodfacts/product-database")
     print()
     
