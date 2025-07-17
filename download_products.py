@@ -23,12 +23,12 @@ def download_from_huggingface():
         
         print("Dataset loaded successfully!")
         # print("Extracting first 5 records...")
-        print("Extractingrecords...")
+        print("Extracting records...")
         
         # records = []
         for i, record in enumerate(dataset):
-            if i >= 5:
-                break
+            # if i >= 5:
+            #     break
             # records.append(record)
             print(f"Record {i+1}: {record.get('code')}")
         
