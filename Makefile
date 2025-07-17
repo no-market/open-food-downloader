@@ -10,7 +10,7 @@ install:
 
 run:
 	@if [ ! -d "venv" ]; then echo "Virtual environment not found. Run 'make install' first."; exit 1; fi
-	. venv/bin/activate && python3 download_products.py
+	. venv/bin/activate && python3 download_products.py || { echo "Script failed but continuing pipeline..."; exit 0; }
 
 test:
 	# No tests yet

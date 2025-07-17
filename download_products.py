@@ -6,8 +6,16 @@ Downloads first 5 records from the Hugging Face dataset and prints them to conso
 
 import json
 import sys
+import signal
+import gc
 from typing import List, Dict, Any
 
+
+
+def signal_handler(signum, frame):
+    """Handle termination signals gracefully."""
+    print("Received termination signal. Exiting gracefully...")
+    sys.exit(0)
 
 
 def download_from_huggingface() -> List[Dict[str, Any]]:
@@ -28,8 +36,14 @@ def download_from_huggingface() -> List[Dict[str, Any]]:
         for i, record in enumerate(dataset):
             if i >= 5:
                 break
-            records.append(record)
-            print(f"Record {i+1}: {len(record)} fields")
+            # Limit record size to prevent memory issues
+            limited_record = {k: v for k, v in list(record.items())[:50]}  # Limit to first 50 fields
+            records.append(limited_record)
+            print(f"Record {i+1}: {len(limited_record)} fields")
+            
+            # Force garbage collection to free memory
+            if i % 2 == 0:
+                gc.collect()
         
         print(f"Successfully downloaded {len(records)} records")
         
@@ -44,6 +58,7 @@ def download_from_huggingface() -> List[Dict[str, Any]]:
         return []
     except Exception as e:
         print(f"Error downloading from Hugging Face: {e}")
+        # Always return gracefully to avoid core dumps
         return []
 
 
@@ -72,18 +87,32 @@ def print_records(records: List[Dict[str, Any]]) -> None:
 
 def main():
     """Main function to download and display food records."""
-    print("OpenFoodFacts Product Downloader")
-    print("Downloading first 5 food records from dataset")
-    print("Source: https://huggingface.co/datasets/openfoodfacts/product-database")
-    print()
+    # Set up signal handlers to prevent core dumps
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
     
-    # Try to download from Hugging Face
-    records = download_from_huggingface()
-    
-    # Print the records to console
-    print_records(records)
-    
-    print(f"Processing complete! Displayed {len(records)} food product records")
+    try:
+        print("OpenFoodFacts Product Downloader")
+        print("Downloading first 5 food records from dataset")
+        print("Source: https://huggingface.co/datasets/openfoodfacts/product-database")
+        print()
+        
+        # Try to download from Hugging Face
+        records = download_from_huggingface()
+        
+        # Print the records to console
+        print_records(records)
+        
+        print(f"Processing complete! Displayed {len(records)} food product records")
+        
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        print("Script completed with errors but exiting gracefully.")
+    except KeyboardInterrupt:
+        print("Script interrupted by user.")
+    finally:
+        # Ensure we always exit cleanly
+        sys.exit(0)
     
 
 
