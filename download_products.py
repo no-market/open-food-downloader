@@ -26,14 +26,20 @@ def download_from_huggingface():
         print("Extracting records...")
         
         # records = []
+        n = 0
         for i, record in enumerate(dataset):
             # if i >= 5:
             #     break
             # records.append(record)
-            print(f"Record {i+1}: {record.get('code')}")
+            if (i + 1) % 1000 == 0:
+                print(f"Record {i+1}: {record.get('code')}")
+
+            if not record.get('code'):
+                n += 1
         
         print(f"Successfully downloaded {i} records")
-        
+        print(f"Number of records without a code: {n}")
+
         # Save the first record to a file
         # if records:
         #     save_first_record(records[0])
