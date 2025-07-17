@@ -6,6 +6,7 @@ Downloads first 5 records from the Hugging Face dataset and prints them to conso
 
 import json
 import sys
+import traceback
 from typing import List, Dict, Any
 
 
@@ -45,9 +46,11 @@ def download_from_huggingface() -> List[Dict[str, Any]]:
         sys.exit(1)
     except HfHubHTTPError as e:
         print(f"HTTP Error connecting to Hugging Face Hub: {e}")
+        traceback.print_exc()
         sys.exit(1)
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
+        traceback.print_exc()
         sys.exit(1)
 
 
@@ -88,9 +91,6 @@ def main():
     print_records(records)
     
     print(f"Processing complete! Displayed {len(records)} food product records")
-    
-    # Force clean exit to avoid segmentation fault
-    sys.exit(0)
 
 
 if __name__ == "__main__":
