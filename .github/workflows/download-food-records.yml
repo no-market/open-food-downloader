@@ -40,6 +40,14 @@ jobs:
         make run
         echo "✅ Food records download completed!"
         
+    - name: Upload first record as artifact
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: first-food-record
+        path: first_record.json
+        retention-days: 30
+        
     - name: Upload run summary
       if: always()
       run: |
@@ -48,4 +56,5 @@ jobs:
         echo "✅ **Status**: Completed successfully" >> $GITHUB_STEP_SUMMARY
         echo "📊 **Records**: 5 food product records downloaded and displayed" >> $GITHUB_STEP_SUMMARY
         echo "🔗 **Source**: OpenFoodFacts dataset via Hugging Face" >> $GITHUB_STEP_SUMMARY
+        echo "📁 **Artifact**: First record saved as 'first-food-record' artifact" >> $GITHUB_STEP_SUMMARY
         echo "⏰ **Timestamp**: $(date -u)" >> $GITHUB_STEP_SUMMARY

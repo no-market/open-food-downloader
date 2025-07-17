@@ -19,7 +19,7 @@ def download_from_huggingface() -> List[Dict[str, Any]]:
         print("Dataset: openfoodfacts/product-database")
         
         # Load dataset in streaming mode for efficiency
-        dataset = load_dataset('openfoodfacts/product-database', split='train', streaming=True)
+        dataset = load_dataset('openfoodfacts/product-database', split='food', streaming=True)
         
         print("Dataset loaded successfully!")
         print("Extracting first 5 records...")
@@ -32,6 +32,11 @@ def download_from_huggingface() -> List[Dict[str, Any]]:
             print(f"Record {i+1}: {len(record)} fields")
         
         print(f"Successfully downloaded {len(records)} records")
+        
+        # Save the first record to a file
+        if records:
+            save_first_record(records[0])
+        
         return records
         
     except ImportError:
@@ -40,6 +45,17 @@ def download_from_huggingface() -> List[Dict[str, Any]]:
     except Exception as e:
         print(f"Error downloading from Hugging Face: {e}")
         return []
+
+
+def save_first_record(record: Dict[str, Any]) -> None:
+    """Save the first record to a JSON file."""
+    filename = "first_record.json"
+    try:
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(record, f, indent=2, ensure_ascii=False)
+        print(f"First record saved to '{filename}'")
+    except Exception as e:
+        print(f"Error saving first record: {e}")
 
 
 def print_records(records: List[Dict[str, Any]]) -> None:
@@ -68,6 +84,9 @@ def main():
     print_records(records)
     
     print(f"Processing complete! Displayed {len(records)} food product records")
+    
+    # Force clean exit to avoid segmentation fault
+    sys.exit(0)
 
 
 if __name__ == "__main__":

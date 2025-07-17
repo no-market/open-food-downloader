@@ -1,0 +1,541 @@
+{
+  "additives_n": null,
+  "additives_tags": null,
+  "allergens_tags": [
+    "en:nuts"
+  ],
+  "brands_tags": [
+    "xx:bovetti"
+  ],
+  "brands": "Bovetti",
+  "categories": "Petit-déjeuners,Produits à tartiner,Produits à tartiner sucrés,Pâtes à tartiner,Pâtes à tartiner aux noisettes,Pâtes à tartiner au chocolat,Pâtes à tartiner aux noisettes et au cacao",
+  "categories_tags": [
+    "en:breakfasts",
+    "en:spreads",
+    "en:sweet-spreads",
+    "fr:pates-a-tartiner",
+    "en:hazelnut-spreads",
+    "en:chocolate-spreads",
+    "en:cocoa-and-hazelnuts-spreads"
+  ],
+  "categories_properties": {
+    "ciqual_food_code": 31032,
+    "agribalyse_food_code": 31032,
+    "agribalyse_proxy_food_code": 31032
+  },
+  "checkers_tags": [],
+  "ciqual_food_name_tags": [
+    "chocolate-spread-with-hazelnuts"
+  ],
+  "cities_tags": [],
+  "code": "0000101209159",
+  "compared_to_category": "en:cocoa-and-hazelnuts-spreads",
+  "complete": 0,
+  "completeness": 0.6875,
+  "correctors_tags": [
+    "openfoodfacts-contributors",
+    "tacite-mass-editor",
+    "sebleouf",
+    "moon-rabbit",
+    "roboto-app",
+    "timotheeberthault"
+  ],
+  "countries_tags": [
+    "en:france"
+  ],
+  "created_t": 1519297017,
+  "creator": "kiliweb",
+  "data_quality_errors_tags": [],
+  "data_quality_info_tags": [
+    "en:packaging-data-incomplete",
+    "en:environmental-score-extended-data-not-computed",
+    "en:food-groups-1-known",
+    "en:food-groups-2-known",
+    "en:food-groups-3-unknown"
+  ],
+  "data_quality_warnings_tags": [
+    "en:environmental-score-origins-of-ingredients-origins-are-100-percent-unknown",
+    "en:environmental-score-packaging-unscored-shape",
+    "en:environmental-score-production-system-no-label",
+    "en:environmental-score-threatened-species-ingredients-missing"
+  ],
+  "data_sources_tags": [
+    "app-yuka",
+    "apps"
+  ],
+  "ecoscore_data": null,
+  "ecoscore_grade": null,
+  "ecoscore_score": null,
+  "ecoscore_tags": [
+    "d"
+  ],
+  "editors": null,
+  "emb_codes_tags": [],
+  "emb_codes": "",
+  "entry_dates_tags": [
+    "2018-02-22",
+    "2018-02",
+    "2018"
+  ],
+  "food_groups_tags": [
+    "en:sugary-snacks",
+    "en:sweets"
+  ],
+  "generic_name": [],
+  "images": [
+    {
+      "key": "front_fr",
+      "imgid": 1,
+      "rev": 4,
+      "sizes": {
+        "100": {
+          "h": 100,
+          "w": 75
+        },
+        "200": {
+          "h": 200,
+          "w": 150
+        },
+        "400": {
+          "h": 400,
+          "w": 300
+        },
+        "full": {
+          "h": 1200,
+          "w": 901
+        }
+      },
+      "uploaded_t": null,
+      "uploader": null
+    },
+    {
+      "key": "2",
+      "imgid": null,
+      "rev": null,
+      "sizes": {
+        "100": {
+          "h": 75,
+          "w": 100
+        },
+        "200": null,
+        "400": {
+          "h": 300,
+          "w": 400
+        },
+        "full": {
+          "h": 1200,
+          "w": 1599
+        }
+      },
+      "uploaded_t": 1519297021,
+      "uploader": "kiliweb"
+    },
+    {
+      "key": "1",
+      "imgid": null,
+      "rev": null,
+      "sizes": {
+        "100": {
+          "h": 100,
+          "w": 75
+        },
+        "200": null,
+        "400": {
+          "h": 400,
+          "w": 300
+        },
+        "full": {
+          "h": 1200,
+          "w": 901
+        }
+      },
+      "uploaded_t": 1519297019,
+      "uploader": "kiliweb"
+    },
+    {
+      "key": "nutrition_fr",
+      "imgid": 3,
+      "rev": 15,
+      "sizes": {
+        "100": {
+          "h": 94,
+          "w": 100
+        },
+        "200": {
+          "h": 188,
+          "w": 200
+        },
+        "400": {
+          "h": 376,
+          "w": 400
+        },
+        "full": {
+          "h": 1200,
+          "w": 1278
+        }
+      },
+      "uploaded_t": null,
+      "uploader": null
+    },
+    {
+      "key": "ingredients_fr",
+      "imgid": 2,
+      "rev": 10,
+      "sizes": {
+        "100": {
+          "h": 50,
+          "w": 100
+        },
+        "200": {
+          "h": 100,
+          "w": 200
+        },
+        "400": {
+          "h": 199,
+          "w": 400
+        },
+        "full": {
+          "h": 545,
+          "w": 1095
+        }
+      },
+      "uploaded_t": null,
+      "uploader": null
+    },
+    {
+      "key": "3",
+      "imgid": null,
+      "rev": null,
+      "sizes": {
+        "100": {
+          "h": 94,
+          "w": 100
+        },
+        "200": null,
+        "400": {
+          "h": 376,
+          "w": 400
+        },
+        "full": {
+          "h": 1200,
+          "w": 1278
+        }
+      },
+      "uploaded_t": 1579374831,
+      "uploader": "kiliweb"
+    }
+  ],
+  "informers_tags": [
+    "yuka.SGJvbVRKUXpoT2tVaHZCaDNEUEl4NHdrbDdpNVcwR3FEc0E2SVE9PQ",
+    "kiliweb",
+    "sebleouf",
+    "moon-rabbit",
+    "roboto-app",
+    "timotheeberthault"
+  ],
+  "ingredients_analysis_tags": null,
+  "ingredients_from_palm_oil_n": null,
+  "ingredients_n": null,
+  "ingredients_original_tags": null,
+  "ingredients_percent_analysis": null,
+  "ingredients_tags": null,
+  "ingredients_text": [],
+  "ingredients_with_specified_percent_n": null,
+  "ingredients_with_unspecified_percent_n": null,
+  "ingredients_without_ciqual_codes_n": null,
+  "ingredients_without_ciqual_codes": null,
+  "ingredients": null,
+  "known_ingredients_n": null,
+  "labels_tags": [
+    "en:no-gluten",
+    "en:no-palm-oil"
+  ],
+  "labels": "Sans gluten,Sans huile de palme",
+  "lang": "fr",
+  "languages_tags": [
+    "en:french",
+    "en:1"
+  ],
+  "last_edit_dates_tags": [
+    "2024-11-14",
+    "2024-11",
+    "2024"
+  ],
+  "last_editor": "timotheeberthault",
+  "last_image_t": 1579374831,
+  "last_modified_by": "timotheeberthault",
+  "last_modified_t": 1731601773,
+  "last_updated_t": 1743391825,
+  "link": "",
+  "main_countries_tags": [],
+  "manufacturing_places_tags": [],
+  "manufacturing_places": "",
+  "max_imgid": 3,
+  "minerals_tags": [],
+  "misc_tags": [
+    "en:environmental-score-computed",
+    "en:environmental-score-missing-data-labels",
+    "en:environmental-score-missing-data-origins",
+    "en:environmental-score-missing-data-packagings",
+    "en:environmental-score-missing-data-warning",
+    "en:nutriscore-2021-e-2023-e",
+    "en:nutriscore-2021-same-as-2023",
+    "en:nutriscore-computed",
+    "en:nutrition-fruits-vegetables-nuts-estimate",
+    "en:nutrition-no-fiber",
+    "en:nutrition-no-fiber-or-fruits-vegetables-nuts",
+    "en:packagings-complete",
+    "en:packagings-not-empty",
+    "en:packagings-number-of-components-2"
+  ],
+  "new_additives_n": null,
+  "no_nutrition_data": false,
+  "nova_group": null,
+  "nova_groups_tags": [
+    "unknown"
+  ],
+  "nova_groups": null,
+  "nucleotides_tags": [],
+  "nutrient_levels_tags": [
+    "en:fat-in-high-quantity",
+    "en:saturated-fat-in-high-quantity",
+    "en:sugars-in-high-quantity",
+    "en:salt-in-low-quantity"
+  ],
+  "nutriments": [
+    {
+      "name": "saturated-fat",
+      "value": 10.0,
+      "100g": 10.0,
+      "serving": null,
+      "unit": "g",
+      "prepared_value": null,
+      "prepared_100g": null,
+      "prepared_serving": null,
+      "prepared_unit": null
+    },
+    {
+      "name": "fruits-vegetables-nuts-estimate",
+      "value": 40.0,
+      "100g": 40.0,
+      "serving": 40.0,
+      "unit": "g",
+      "prepared_value": null,
+      "prepared_100g": null,
+      "prepared_serving": null,
+      "prepared_unit": null
+    },
+    {
+      "name": "sodium",
+      "value": 0.004000000189989805,
+      "100g": 0.004000000189989805,
+      "serving": null,
+      "unit": "g",
+      "prepared_value": null,
+      "prepared_100g": null,
+      "prepared_serving": null,
+      "prepared_unit": null
+    },
+    {
+      "name": "salt",
+      "value": 0.009999999776482582,
+      "100g": 0.009999999776482582,
+      "serving": null,
+      "unit": "g",
+      "prepared_value": null,
+      "prepared_100g": null,
+      "prepared_serving": null,
+      "prepared_unit": null
+    },
+    {
+      "name": "fat",
+      "value": 48.0,
+      "100g": 48.0,
+      "serving": null,
+      "unit": "g",
+      "prepared_value": null,
+      "prepared_100g": null,
+      "prepared_serving": null,
+      "prepared_unit": null
+    },
+    {
+      "name": "cocoa",
+      "value": 17.520000457763672,
+      "100g": 17.520000457763672,
+      "serving": 17.520000457763672,
+      "unit": "g",
+      "prepared_value": null,
+      "prepared_100g": null,
+      "prepared_serving": null,
+      "prepared_unit": null
+    },
+    {
+      "name": "carbohydrates",
+      "value": 36.0,
+      "100g": 36.0,
+      "serving": null,
+      "unit": "g",
+      "prepared_value": null,
+      "prepared_100g": null,
+      "prepared_serving": null,
+      "prepared_unit": null
+    },
+    {
+      "name": "proteins",
+      "value": 8.0,
+      "100g": 8.0,
+      "serving": null,
+      "unit": "g",
+      "prepared_value": null,
+      "prepared_100g": null,
+      "prepared_serving": null,
+      "prepared_unit": null
+    },
+    {
+      "name": "sugars",
+      "value": 32.0,
+      "100g": 32.0,
+      "serving": null,
+      "unit": "g",
+      "prepared_value": null,
+      "prepared_100g": null,
+      "prepared_serving": null,
+      "prepared_unit": null
+    },
+    {
+      "name": "energy",
+      "value": 617.0,
+      "100g": 2582.0,
+      "serving": null,
+      "unit": "kcal",
+      "prepared_value": null,
+      "prepared_100g": null,
+      "prepared_serving": null,
+      "prepared_unit": null
+    },
+    {
+      "name": "nutrition-score-fr",
+      "value": null,
+      "100g": 25.0,
+      "serving": null,
+      "unit": null,
+      "prepared_value": null,
+      "prepared_100g": null,
+      "prepared_serving": null,
+      "prepared_unit": null
+    },
+    {
+      "name": "energy-kcal",
+      "value": 617.0,
+      "100g": 617.0,
+      "serving": null,
+      "unit": "kcal",
+      "prepared_value": null,
+      "prepared_100g": null,
+      "prepared_serving": null,
+      "prepared_unit": null
+    }
+  ],
+  "nutriscore_grade": "e",
+  "nutriscore_score": 25,
+  "nutrition_data_per": "100g",
+  "obsolete": false,
+  "origins_tags": [],
+  "origins": "",
+  "owner_fields": null,
+  "owner": null,
+  "packagings_complete": true,
+  "packaging_recycling_tags": [
+    "en:recycle-in-sorting-bin"
+  ],
+  "packaging_shapes_tags": [
+    "en:jar",
+    "en:lid"
+  ],
+  "packaging_tags": [],
+  "packaging_text": [],
+  "packaging": "",
+  "packagings": [
+    {
+      "material": "en:glass",
+      "number_of_units": 1,
+      "quantity_per_unit": "350",
+      "quantity_per_unit_unit": null,
+      "quantity_per_unit_value": null,
+      "recycling": "en:recycle-in-sorting-bin",
+      "shape": "en:jar",
+      "weight_measured": null
+    },
+    {
+      "material": "en:metal",
+      "number_of_units": 1,
+      "quantity_per_unit": null,
+      "quantity_per_unit_unit": null,
+      "quantity_per_unit_value": null,
+      "recycling": "en:recycle-in-sorting-bin",
+      "shape": "en:lid",
+      "weight_measured": null
+    }
+  ],
+  "photographers": null,
+  "popularity_key": 1,
+  "popularity_tags": [
+    "top-75-percent-scans-2024",
+    "top-80-percent-scans-2024",
+    "top-85-percent-scans-2024",
+    "top-90-percent-scans-2024",
+    "top-1000-sg-scans-2024",
+    "top-5000-sg-scans-2024",
+    "top-10000-sg-scans-2024",
+    "top-50000-sg-scans-2024",
+    "top-100000-sg-scans-2024",
+    "top-country-sg-scans-2024"
+  ],
+  "product_name": [
+    {
+      "lang": "main",
+      "text": "Véritable pâte à tartiner noisettes chocolat noir"
+    },
+    {
+      "lang": "fr",
+      "text": "Véritable pâte à tartiner noisettes chocolat noir"
+    }
+  ],
+  "product_quantity_unit": "g",
+  "product_quantity": "350",
+  "purchase_places_tags": [],
+  "quantity": "350 g",
+  "rev": 18,
+  "scans_n": 1,
+  "serving_quantity": null,
+  "serving_size": null,
+  "states_tags": [
+    "en:to-be-completed",
+    "en:nutrition-facts-completed",
+    "en:ingredients-to-be-completed",
+    "en:expiration-date-completed",
+    "en:packaging-code-to-be-completed",
+    "en:characteristics-to-be-completed",
+    "en:origins-to-be-completed",
+    "en:categories-completed",
+    "en:brands-completed",
+    "en:packaging-to-be-completed",
+    "en:quantity-completed",
+    "en:product-name-completed",
+    "en:photos-to-be-validated",
+    "en:packaging-photo-to-be-selected",
+    "en:nutrition-photo-selected",
+    "en:ingredients-photo-selected",
+    "en:front-photo-selected",
+    "en:photos-uploaded"
+  ],
+  "stores_tags": [],
+  "stores": "",
+  "traces_tags": [],
+  "unique_scans_n": 1,
+  "unknown_ingredients_n": null,
+  "unknown_nutrients_tags": [],
+  "vitamins_tags": [],
+  "with_non_nutritive_sweeteners": null,
+  "with_sweeteners": null
+}
