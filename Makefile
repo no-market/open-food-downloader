@@ -1,4 +1,4 @@
-.PHONY: install run setup-local run-local test clean install-production run-production wake-app
+.PHONY: install run test clean
 
 install:
 	@echo "Setting up virtual environment..."
