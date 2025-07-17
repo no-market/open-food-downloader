@@ -85,8 +85,6 @@ def main():
     
     print(f"Processing complete! Displayed {len(records)} food product records")
     
-    # Force clean exit to avoid segmentation fault
-    sys.exit(0)
 
 
 if __name__ == "__main__":
