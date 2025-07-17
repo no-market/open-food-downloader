@@ -7,6 +7,7 @@ Downloads first 5 records from the Hugging Face dataset and prints them to conso
 import json
 import sys
 import traceback
+import gc
 from typing import List, Dict, Any
 from retry import retry
 from requests.exceptions import ConnectionError
@@ -24,6 +25,7 @@ def download_from_huggingface() -> List[Dict[str, Any]]:
         
         # Load dataset in streaming mode for efficiency
         dataset = load_dataset('openfoodfacts/product-database', split='food', streaming=True)
+        gc.collect()
         
         print("Dataset loaded successfully!")
         print("Extracting first 5 records...")
