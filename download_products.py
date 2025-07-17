@@ -14,6 +14,7 @@ def download_from_huggingface() -> List[Dict[str, Any]]:
     """Download first 5 records from the OpenFoodFacts dataset on Hugging Face."""
     try:
         from datasets import load_dataset
+        from huggingface_hub.utils import HfHubHTTPError
         
         print("Downloading dataset from Hugging Face...")
         print("Dataset: openfoodfacts/product-database")
@@ -41,10 +42,13 @@ def download_from_huggingface() -> List[Dict[str, Any]]:
         
     except ImportError:
         print("Required packages not installed. Please run: pip install -r requirements.txt")
-        return []
+        sys.exit(1)
+    except HfHubHTTPError as e:
+        print(f"HTTP Error connecting to Hugging Face Hub: {e}")
+        sys.exit(1)
     except Exception as e:
-        print(f"Error downloading from Hugging Face: {e}")
-        return []
+        print(f"An unexpected error occurred: {e}")
+        sys.exit(1)
 
 
 def save_first_record(record: Dict[str, Any]) -> None:
