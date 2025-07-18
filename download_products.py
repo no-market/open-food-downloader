@@ -29,9 +29,8 @@ def download_from_huggingface():
         langs_map = {}
         
         products = []
-        record_count = 0
         for i, record in enumerate(dataset):
-            if record_count >= 5:
+            if i >= 5:
                 break
  
             product = {
@@ -57,15 +56,14 @@ def download_from_huggingface():
             lang = record.get('lang', "None_LANG_ATTRIBUTE")
             langs_map[lang] = langs_map.get(lang, 0) + 1
 
-            record_count += 1
-            print(f"Record {record_count}: {lang}")
+            print(f"Record {i + 1}: {lang}")
 
 
         print("Language distribution:")
         for lang, count in langs_map.items():
             print(f" - {lang}: {count}")
         
-        print(f"Successfully downloaded {record_count} records")
+        print(f"Successfully downloaded {len(products)} records")
 
         save_products_to_json(products)
 
