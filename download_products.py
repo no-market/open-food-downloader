@@ -21,8 +21,10 @@ def download_from_huggingface():
         # Load dataset in streaming mode for efficiency
         dataset = load_dataset('openfoodfacts/product-database', split='food', streaming=True)
         
+        # Filter dataset to only include Polish records using built-in filter method
+        dataset = dataset.filter(lambda record: record.get('lang') == 'pl')
+        
         print("Dataset loaded successfully!")
-        # print("Extracting first 5 records...")
         print("Extracting records...")
         langs_map = {}
         
@@ -54,16 +56,14 @@ def download_from_huggingface():
             lang = record.get('lang', "None_LANG_ATTRIBUTE")
             langs_map[lang] = langs_map.get(lang, 0) + 1
 
-            # if (i + 1) % 1000 == 0:
-            #     print(f"Record {i+1}: {lang}")
-            print(f"Record {i+1}: {lang}")
+            print(f"Record {i + 1}: {lang}")
 
 
         print("Language distribution:")
         for lang, count in langs_map.items():
             print(f" - {lang}: {count}")
         
-        print(f"Successfully downloaded {i} records")
+        print(f"Successfully downloaded {len(products)} records")
 
         save_products_to_json(products)
 
