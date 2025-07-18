@@ -33,10 +33,21 @@ def download_from_huggingface():
  
             product = {
                 '_id': record.get('code'),
-                'lang':record.get('lang'),
+                'lang': record.get('lang'),
                 'product_name': record.get('product_name'),
-
-                # TODO: Map other fields
+                'brands': record.get('brands'),
+                'food_groups_tags': record.get('food_groups_tags'),
+                'product_quantity_unit': record.get('product_quantity_unit'),
+                'product_quantity': record.get('product_quantity'),
+                'quantity': record.get('quantity'),
+                'categories_tags': record.get('categories_tags'),
+                'categories': [c.strip() for c in record.get('categories', '').split(',') if record.get('categories')] if record.get('categories') else [],
+                'labels_tags': record.get('labels_tags'),
+                'labels': [l.strip() for l in record.get('labels', '').split(',') if record.get('labels')] if record.get('labels') else [],
+                'popularity_key': record.get('popularity_key'),
+                'popularity_tags': record.get('popularity_tags'),
+                'nutriscore_grade': record.get('nutriscore_grade'),
+                'nutriscore_score': record.get('nutriscore_score'),
             }
             products.append(product)
 
@@ -54,10 +65,8 @@ def download_from_huggingface():
         
         print(f"Successfully downloaded {i} records")
 
-        # Save the first record to a file
-        # if records:
-        #     save_first_record(records[0])
-        
+        save_products_to_json(products)
+
     except ImportError:
         print("Required packages not installed. Please run: pip install -r requirements.txt")
         return []
@@ -66,15 +75,15 @@ def download_from_huggingface():
         return []
 
 
-# def save_first_record(record: Dict[str, Any]) -> None:
-#     """Save the first record to a JSON file."""
-#     filename = "first_record.json"
-#     try:
-#         with open(filename, 'w', encoding='utf-8') as f:
-#             json.dump(record, f, indent=2, ensure_ascii=False)
-#         print(f"First record saved to '{filename}'")
-#     except Exception as e:
-#         print(f"Error saving first record: {e}")
+def save_products_to_json(products: List[Dict[str, Any]]) -> None:
+    """Save the products to a JSON file."""
+    filename = "products.json"
+    try:
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(products, f, indent=2, ensure_ascii=False)
+        print(f"Products saved to '{filename}'")
+    except Exception as e:
+        print(f"Error saving products to JSON: {e}")
 
 
 # def print_records(records: List[Dict[str, Any]]) -> None:

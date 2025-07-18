@@ -1,0 +1,225 @@
+[
+  {
+    "_id": "0000101209159",
+    "lang": "fr",
+    "product_name": [
+      {
+        "lang": "main",
+        "text": "Véritable pâte à tartiner noisettes chocolat noir"
+      },
+      {
+        "lang": "fr",
+        "text": "Véritable pâte à tartiner noisettes chocolat noir"
+      }
+    ],
+    "brands": "Bovetti",
+    "food_groups_tags": [
+      "en:sugary-snacks",
+      "en:sweets"
+    ],
+    "product_quantity_unit": "g",
+    "product_quantity": "350",
+    "quantity": "350 g",
+    "categories_tags": [
+      "en:breakfasts",
+      "en:spreads",
+      "en:sweet-spreads",
+      "fr:pates-a-tartiner",
+      "en:hazelnut-spreads",
+      "en:chocolate-spreads",
+      "en:cocoa-and-hazelnuts-spreads"
+    ],
+    "categories": [
+      "Petit-déjeuners",
+      "Produits à tartiner",
+      "Produits à tartiner sucrés",
+      "Pâtes à tartiner",
+      "Pâtes à tartiner aux noisettes",
+      "Pâtes à tartiner au chocolat",
+      "Pâtes à tartiner aux noisettes et au cacao"
+    ],
+    "labels_tags": [
+      "en:no-gluten",
+      "en:no-palm-oil"
+    ],
+    "labels": [
+      "Sans gluten",
+      "Sans huile de palme"
+    ],
+    "popularity_key": 1,
+    "popularity_tags": [
+      "top-75-percent-scans-2024",
+      "top-80-percent-scans-2024",
+      "top-85-percent-scans-2024",
+      "top-90-percent-scans-2024",
+      "top-1000-sg-scans-2024",
+      "top-5000-sg-scans-2024",
+      "top-10000-sg-scans-2024",
+      "top-50000-sg-scans-2024",
+      "top-100000-sg-scans-2024",
+      "top-country-sg-scans-2024"
+    ],
+    "nutriscore_grade": "e",
+    "nutriscore_score": 25
+  },
+  {
+    "_id": "0000105000011",
+    "lang": "en",
+    "product_name": [
+      {
+        "lang": "main",
+        "text": "Chamomile Herbal Tea"
+      },
+      {
+        "lang": "en",
+        "text": "Chamomile Herbal Tea"
+      }
+    ],
+    "brands": "Lagg's",
+    "food_groups_tags": [],
+    "product_quantity_unit": "g",
+    "product_quantity": "1.0",
+    "quantity": "1 g",
+    "categories_tags": [
+      "en:null"
+    ],
+    "categories": [
+      "null"
+    ],
+    "labels_tags": null,
+    "labels": [],
+    "popularity_key": 1,
+    "popularity_tags": [
+      "bottom-25-percent-scans-2020",
+      "bottom-20-percent-scans-2020",
+      "top-85-percent-scans-2020",
+      "top-90-percent-scans-2020",
+      "top-50000-us-scans-2020",
+      "top-100000-us-scans-2020",
+      "top-country-us-scans-2020"
+    ],
+    "nutriscore_grade": "unknown",
+    "nutriscore_score": null
+  },
+  {
+    "_id": "0000105000042",
+    "lang": "en",
+    "product_name": [
+      {
+        "lang": "main",
+        "text": "Lagg's, herbal tea, peppermint"
+      },
+      {
+        "lang": "en",
+        "text": "Lagg's, herbal tea, peppermint"
+      }
+    ],
+    "brands": "Lagg's",
+    "food_groups_tags": [
+      "en:beverages",
+      "en:unsweetened-beverages"
+    ],
+    "product_quantity_unit": null,
+    "product_quantity": null,
+    "quantity": null,
+    "categories_tags": [
+      "en:plant-based-foods-and-beverages",
+      "en:beverages",
+      "en:hot-beverages",
+      "en:plant-based-beverages",
+      "en:teas",
+      "en:tea-bags"
+    ],
+    "categories": [
+      "Plant-based foods and beverages",
+      "Beverages",
+      "Hot beverages",
+      "Plant-based beverages",
+      "Teas",
+      "Tea bags"
+    ],
+    "labels_tags": null,
+    "labels": [],
+    "popularity_key": 0,
+    "popularity_tags": null,
+    "nutriscore_grade": "unknown",
+    "nutriscore_score": null
+  },
+  {
+    "_id": "0000105000059",
+    "lang": "en",
+    "product_name": [
+      {
+        "lang": "main",
+        "text": "Linden Flowers Tea"
+      },
+      {
+        "lang": "en",
+        "text": "Linden Flowers Tea"
+      }
+    ],
+    "brands": "Lagg's",
+    "food_groups_tags": [
+      "en:beverages",
+      "en:unsweetened-beverages"
+    ],
+    "product_quantity_unit": "g",
+    "product_quantity": "1.5",
+    "quantity": "1.5 g",
+    "categories_tags": [
+      "en:beverages-and-beverages-preparations",
+      "en:plant-based-foods-and-beverages",
+      "en:beverages",
+      "en:hot-beverages",
+      "en:plant-based-beverages",
+      "en:beverage-preparations",
+      "en:teas",
+      "en:tea-leaves",
+      "en:tea-bags",
+      "en:null"
+    ],
+    "categories": [
+      "Beverages and beverages preparations",
+      "Plant-based foods and beverages",
+      "Beverages",
+      "Hot beverages",
+      "Plant-based beverages",
+      "Teas",
+      "Null",
+      "en:tea-bags"
+    ],
+    "labels_tags": null,
+    "labels": [],
+    "popularity_key": 0,
+    "popularity_tags": null,
+    "nutriscore_grade": "unknown",
+    "nutriscore_score": null
+  },
+  {
+    "_id": "0000105000073",
+    "lang": "en",
+    "product_name": [
+      {
+        "lang": "main",
+        "text": "Herbal Tea, Hibiscus"
+      },
+      {
+        "lang": "en",
+        "text": "Herbal Tea, Hibiscus"
+      }
+    ],
+    "brands": "Lagg's",
+    "food_groups_tags": [],
+    "product_quantity_unit": null,
+    "product_quantity": null,
+    "quantity": null,
+    "categories_tags": null,
+    "categories": [],
+    "labels_tags": null,
+    "labels": [],
+    "popularity_key": 0,
+    "popularity_tags": null,
+    "nutriscore_grade": "unknown",
+    "nutriscore_score": null
+  }
+]
