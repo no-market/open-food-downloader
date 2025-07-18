@@ -23,12 +23,17 @@ def download_from_huggingface():
         
         print("Dataset loaded successfully!")
         # print("Extracting first 5 records...")
-        print("Extracting records...")
+        print("Extracting Polish records...")
         langs_map = {}
         
         products = []
+        record_count = 0
         for i, record in enumerate(dataset):
-            if i >= 5:
+            # Filter only Polish records
+            if record.get('lang') != 'pl':
+                continue
+                
+            if record_count >= 5:
                 break
  
             product = {
@@ -54,16 +59,15 @@ def download_from_huggingface():
             lang = record.get('lang', "None_LANG_ATTRIBUTE")
             langs_map[lang] = langs_map.get(lang, 0) + 1
 
-            # if (i + 1) % 1000 == 0:
-            #     print(f"Record {i+1}: {lang}")
-            print(f"Record {i+1}: {lang}")
+            record_count += 1
+            print(f"Record {record_count}: {lang}")
 
 
         print("Language distribution:")
         for lang, count in langs_map.items():
             print(f" - {lang}: {count}")
         
-        print(f"Successfully downloaded {i} records")
+        print(f"Successfully downloaded {record_count} Polish records")
 
         save_products_to_json(products)
 
@@ -101,7 +105,7 @@ def save_products_to_json(products: List[Dict[str, Any]]) -> None:
 def main():
     """Main function to download and display food records."""
     print("OpenFoodFacts Product Downloader")
-    print("Downloading first 5 food records from dataset")
+    print("Downloading first 5 Polish food records from dataset")
     print("Source: https://huggingface.co/datasets/openfoodfacts/product-database")
     print()
     

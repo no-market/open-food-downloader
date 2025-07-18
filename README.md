@@ -4,7 +4,7 @@ A Python script to download and display food product records from the OpenFoodFa
 
 ## Features
 
-- Downloads the first 5 food product records from the [OpenFoodFacts dataset](https://huggingface.co/datasets/openfoodfacts/product-database) on Hugging Face
+- Downloads the first 5 Polish food product records (lang = 'pl') from the [OpenFoodFacts dataset](https://huggingface.co/datasets/openfoodfacts/product-database) on Hugging Face
 - Displays records in a formatted console output with key product information
 - Includes fallback mock data for testing when internet access is not available
 - GitHub Actions workflow for manual execution
@@ -42,7 +42,7 @@ The repository includes a GitHub Action workflow that can be triggered manually:
 
 ## Output
 
-The script displays 5 food product records with the following information for each:
+The script displays 5 Polish food product records with the following information for each:
 - Product Code
 - Product Name  
 - Brand
