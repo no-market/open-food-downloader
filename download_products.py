@@ -24,21 +24,25 @@ def download_from_huggingface():
         print("Dataset loaded successfully!")
         # print("Extracting first 5 records...")
         print("Extracting records...")
+        langs_map = {}
         
         # records = []
-        n = 0
         for i, record in enumerate(dataset):
-            # if i >= 5:
+            # if i >= 5000:
             #     break
-            # records.append(record)
-            if (i + 1) % 1000 == 0:
-                print(f"Record {i+1}: {record.get('code')}")
+            
+            lang = record.get('lang', "None_LANG_ATTRIBUTE")
+            langs_map[lang] = langs_map.get(lang, 0) + 1
 
-            if not record.get('code'):
-                n += 1
+            if (i + 1) % 1000 == 0:
+                print(f"Record {i+1}: {lang}")
+
+
+        print("Language distribution:")
+        for lang, count in langs_map.items():
+            print(f" - {lang}: {count}")
         
         print(f"Successfully downloaded {i} records")
-        print(f"Number of records without a code: {n}")
 
         # Save the first record to a file
         # if records:
