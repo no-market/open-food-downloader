@@ -26,16 +26,26 @@ def download_from_huggingface():
         print("Extracting records...")
         langs_map = {}
         
-        # records = []
+        products = []
         for i, record in enumerate(dataset):
-            # if i >= 5000:
-            #     break
-            
+            if i >= 5:
+                break
+ 
+            product = {
+                '_id': record.get('code'),
+                'lang':record.get('lang'),
+                'product_name': record.get('product_name'),
+
+                # TODO: Map other fields
+            }
+            products.append(product)
+
             lang = record.get('lang', "None_LANG_ATTRIBUTE")
             langs_map[lang] = langs_map.get(lang, 0) + 1
 
-            if (i + 1) % 1000 == 0:
-                print(f"Record {i+1}: {lang}")
+            # if (i + 1) % 1000 == 0:
+            #     print(f"Record {i+1}: {lang}")
+            print(f"Record {i+1}: {lang}")
 
 
         print("Language distribution:")
