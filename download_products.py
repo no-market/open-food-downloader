@@ -21,18 +21,16 @@ def download_from_huggingface():
         # Load dataset in streaming mode for efficiency
         dataset = load_dataset('openfoodfacts/product-database', split='food', streaming=True)
         
+        # Filter dataset to only include Polish records using built-in filter method
+        dataset = dataset.filter(lambda record: record.get('lang') == 'pl')
+        
         print("Dataset loaded successfully!")
-        # print("Extracting first 5 records...")
         print("Extracting records...")
         langs_map = {}
         
         products = []
         record_count = 0
         for i, record in enumerate(dataset):
-            # Filter only Polish records
-            if record.get('lang') != 'pl':
-                continue
-                
             if record_count >= 5:
                 break
  
