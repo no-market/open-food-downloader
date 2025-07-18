@@ -23,7 +23,7 @@ def download_from_huggingface():
         
         print("Dataset loaded successfully!")
         # print("Extracting first 5 records...")
-        print("Extracting Polish records...")
+        print("Extracting records...")
         langs_map = {}
         
         products = []
@@ -67,7 +67,7 @@ def download_from_huggingface():
         for lang, count in langs_map.items():
             print(f" - {lang}: {count}")
         
-        print(f"Successfully downloaded {record_count} Polish records")
+        print(f"Successfully downloaded {record_count} records")
 
         save_products_to_json(products)
 
@@ -105,7 +105,7 @@ def save_products_to_json(products: List[Dict[str, Any]]) -> None:
 def main():
     """Main function to download and display food records."""
     print("OpenFoodFacts Product Downloader")
-    print("Downloading first 5 Polish food records from dataset")
+    print("Downloading first 5 food records from dataset")
     print("Source: https://huggingface.co/datasets/openfoodfacts/product-database")
     print()
     
