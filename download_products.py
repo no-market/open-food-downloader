@@ -28,6 +28,7 @@ def download_from_huggingface():
         langs_map = {}
         
         hierarchy = {}  # Build hierarchy incrementally to avoid memory issues
+        unique_food_groups = set()  # Collect unique food group tags
         
         # Open products file for writing incrementally to avoid memory issues
         products_filename = "products.json"
@@ -68,6 +69,9 @@ def download_from_huggingface():
                 # Process food groups hierarchy directly in the loop to avoid memory issues
                 food_groups_tags = record.get('food_groups_tags', [])
                 if food_groups_tags:
+                    # Add all tags to unique set
+                    unique_food_groups.update(food_groups_tags)
+                    
                     # Build hierarchy: food_groups_tags[0] is child of food_groups_tags[1], etc.
                     for j in range(len(food_groups_tags)):
                         child = food_groups_tags[j]
@@ -103,6 +107,7 @@ def download_from_huggingface():
         print(f"Successfully downloaded and saved {i + 1} records to '{products_filename}'")
 
         save_hierarchy_to_json(hierarchy)
+        save_unique_food_groups_to_json(unique_food_groups)
 
     except ImportError:
         print("Required packages not installed. Please run: pip install -r requirements.txt")
@@ -123,6 +128,20 @@ def save_hierarchy_to_json(hierarchy: dict) -> None:
         print(f"Food groups hierarchy saved to '{filename}'")
     except Exception as e:
         print(f"Error saving food groups hierarchy: {e}")
+
+
+def save_unique_food_groups_to_json(unique_food_groups: set) -> None:
+    """Save unique food group tags to a separate file."""
+    filename = "unique_food_groups.json"
+    
+    try:
+        # Convert set to sorted list for consistent output
+        unique_list = sorted(list(unique_food_groups))
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(unique_list, f, indent=2, ensure_ascii=False)
+        print(f"Unique food groups ({len(unique_list)} tags) saved to '{filename}'")
+    except Exception as e:
+        print(f"Error saving unique food groups: {e}")
 
 
 

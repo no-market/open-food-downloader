@@ -13,3 +13,4 @@ __pycache__/
 
 # Generated artifacts
 food_groups_hierarchy.json
+unique_food_groups.json
