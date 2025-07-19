@@ -48,6 +48,14 @@ jobs:
         path: products.json
         retention-days: 30
         
+    - name: Upload food groups hierarchy as artifact
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: food-groups-hierarchy
+        path: food_groups_hierarchy.json
+        retention-days: 30
+        
     - name: Upload run summary
       if: always()
       run: |
@@ -57,4 +65,5 @@ jobs:
         echo "📊 **Records**: 5 food product records downloaded and displayed" >> $GITHUB_STEP_SUMMARY
         echo "🔗 **Source**: OpenFoodFacts dataset via Hugging Face" >> $GITHUB_STEP_SUMMARY
         echo "📁 **Artifact**: Products saved as 'products' artifact" >> $GITHUB_STEP_SUMMARY
+        echo "🏗️ **Food Groups Hierarchy**: Generated and saved as 'food-groups-hierarchy' artifact" >> $GITHUB_STEP_SUMMARY
         echo "⏰ **Timestamp**: $(date -u)" >> $GITHUB_STEP_SUMMARY

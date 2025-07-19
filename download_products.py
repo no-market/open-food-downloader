@@ -66,6 +66,7 @@ def download_from_huggingface():
         print(f"Successfully downloaded {len(products)} records")
 
         save_products_to_json(products)
+        save_food_groups_hierarchy(products)
 
     except ImportError:
         print("Required packages not installed. Please run: pip install -r requirements.txt")
@@ -84,6 +85,51 @@ def save_products_to_json(products: List[Dict[str, Any]]) -> None:
         print(f"Products saved to '{filename}'")
     except Exception as e:
         print(f"Error saving products to JSON: {e}")
+
+
+def build_food_groups_hierarchy(products: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Build food groups hierarchy from products data."""
+    hierarchy = {}
+    
+    for product in products:
+        food_groups_tags = product.get('food_groups_tags', [])
+        if not food_groups_tags:
+            continue
+            
+        # Build hierarchy: food_groups_tags[0] is child of food_groups_tags[1], etc.
+        for i in range(len(food_groups_tags)):
+            child = food_groups_tags[i]
+            
+            if child not in hierarchy:
+                hierarchy[child] = {'parent': None, 'children': []}
+            
+            # If there's a parent (next element in array)
+            if i + 1 < len(food_groups_tags):
+                parent = food_groups_tags[i + 1]
+                hierarchy[child]['parent'] = parent
+                
+                # Ensure parent exists in hierarchy
+                if parent not in hierarchy:
+                    hierarchy[parent] = {'parent': None, 'children': []}
+                
+                # Add child to parent's children list if not already there
+                if child not in hierarchy[parent]['children']:
+                    hierarchy[parent]['children'].append(child)
+    
+    return hierarchy
+
+
+def save_food_groups_hierarchy(products: List[Dict[str, Any]]) -> None:
+    """Build and save food groups hierarchy to a separate file."""
+    hierarchy = build_food_groups_hierarchy(products)
+    filename = "food_groups_hierarchy.json"
+    
+    try:
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(hierarchy, f, indent=2, ensure_ascii=False)
+        print(f"Food groups hierarchy saved to '{filename}'")
+    except Exception as e:
+        print(f"Error saving food groups hierarchy: {e}")
 
 
 # def print_records(records: List[Dict[str, Any]]) -> None:
@@ -107,6 +153,18 @@ def main():
     
     # Try to download from Hugging Face
     download_from_huggingface()
+    
+    # If products.json exists, also process it for food groups hierarchy
+    try:
+        with open("products.json", 'r', encoding='utf-8') as f:
+            existing_products = json.load(f)
+            if existing_products:
+                print("Processing existing products for food groups hierarchy...")
+                save_food_groups_hierarchy(existing_products)
+    except FileNotFoundError:
+        print("No existing products.json found")
+    except Exception as e:
+        print(f"Error processing existing products: {e}")
     
     # Print the records to console
     # print_records(records)

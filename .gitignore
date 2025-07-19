@@ -10,3 +10,6 @@ __pycache__/
 
 # IDE folders
 .idea/
+
+# Generated artifacts
+food_groups_hierarchy.json
