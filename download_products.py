@@ -29,6 +29,8 @@ def download_from_huggingface():
         langs_map = {}
         
         products = []
+        hierarchy = {}  # Build hierarchy incrementally to avoid memory issues
+        
         for i, record in enumerate(dataset):
             if i >= 5:
                 break
@@ -53,6 +55,29 @@ def download_from_huggingface():
             }
             products.append(product)
 
+            # Process food groups hierarchy directly in the loop to avoid memory issues
+            food_groups_tags = record.get('food_groups_tags', [])
+            if food_groups_tags:
+                # Build hierarchy: food_groups_tags[0] is child of food_groups_tags[1], etc.
+                for j in range(len(food_groups_tags)):
+                    child = food_groups_tags[j]
+                    
+                    if child not in hierarchy:
+                        hierarchy[child] = {'parent': None, 'children': []}
+                    
+                    # If there's a parent (next element in array)
+                    if j + 1 < len(food_groups_tags):
+                        parent = food_groups_tags[j + 1]
+                        hierarchy[child]['parent'] = parent
+                        
+                        # Ensure parent exists in hierarchy
+                        if parent not in hierarchy:
+                            hierarchy[parent] = {'parent': None, 'children': []}
+                        
+                        # Add child to parent's children list if not already there
+                        if child not in hierarchy[parent]['children']:
+                            hierarchy[parent]['children'].append(child)
+
             lang = record.get('lang', "None_LANG_ATTRIBUTE")
             langs_map[lang] = langs_map.get(lang, 0) + 1
 
@@ -66,7 +91,7 @@ def download_from_huggingface():
         print(f"Successfully downloaded {len(products)} records")
 
         save_products_to_json(products)
-        save_food_groups_hierarchy(products)
+        save_hierarchy_to_json(hierarchy)
 
     except ImportError:
         print("Required packages not installed. Please run: pip install -r requirements.txt")
@@ -85,6 +110,18 @@ def save_products_to_json(products: List[Dict[str, Any]]) -> None:
         print(f"Products saved to '{filename}'")
     except Exception as e:
         print(f"Error saving products to JSON: {e}")
+
+
+def save_hierarchy_to_json(hierarchy: Dict[str, Any]) -> None:
+    """Save food groups hierarchy to a separate file."""
+    filename = "food_groups_hierarchy.json"
+    
+    try:
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(hierarchy, f, indent=2, ensure_ascii=False)
+        print(f"Food groups hierarchy saved to '{filename}'")
+    except Exception as e:
+        print(f"Error saving food groups hierarchy: {e}")
 
 
 def build_food_groups_hierarchy(products: List[Dict[str, Any]]) -> Dict[str, Any]:
