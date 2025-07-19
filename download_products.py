@@ -39,8 +39,8 @@ def download_from_huggingface():
             first_product = True
             
             for i, record in enumerate(dataset):
-                if i >= 5:
-                    break
+                # if i >= 5:
+                #     break
      
                 product = {
                     '_id': record.get('code'),
