@@ -118,13 +118,49 @@ def download_from_huggingface():
 
 
 
-def save_hierarchy_to_json(hierarchy: dict) -> None:
-    """Save food groups hierarchy to a separate file."""
+def build_nested_hierarchy(flat_hierarchy):
+    """
+    Convert flat hierarchy to nested hierarchy structure.
+    
+    Args:
+        flat_hierarchy: Dict with structure {tag: {'parent': parent_tag, 'children': [child_tags]}}
+    
+    Returns:
+        Dict with nested structure where only root nodes are at top level
+    """
+    # Find root nodes (nodes with no parent)
+    root_nodes = {tag: data for tag, data in flat_hierarchy.items() if data['parent'] is None}
+    
+    def build_children_tree(node_tag):
+        """Recursively build the nested children structure for a node."""
+        if node_tag not in flat_hierarchy:
+            return {"children": []}
+        
+        children_list = []
+        for child_tag in flat_hierarchy[node_tag]['children']:
+            child_tree = build_children_tree(child_tag)
+            children_list.append({child_tag: child_tree})
+        
+        return {"children": children_list}
+    
+    # Build the nested structure
+    nested_hierarchy = {}
+    for root_tag in root_nodes:
+        nested_hierarchy[root_tag] = build_children_tree(root_tag)
+    
+    return nested_hierarchy
+
+
+def save_hierarchy_to_json(flat_hierarchy: dict) -> None:
+    """Save food groups hierarchy to a separate file in nested format."""
     filename = "food_groups_hierarchy.json"
     
     try:
+        # Convert flat hierarchy to nested format
+        nested_hierarchy = build_nested_hierarchy(flat_hierarchy)
+        
         with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(hierarchy, f, indent=2, ensure_ascii=False)
+            json.dump(nested_hierarchy, f, indent=2, ensure_ascii=False)
         print(f"Food groups hierarchy saved to '{filename}'")
     except Exception as e:
         print(f"Error saving food groups hierarchy: {e}")
