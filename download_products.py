@@ -6,7 +6,6 @@ Downloads first 5 records from the Hugging Face dataset and prints them to conso
 
 import json
 import sys
-from typing import List, Dict, Any
 
 
 
@@ -28,69 +27,81 @@ def download_from_huggingface():
         print("Extracting records...")
         langs_map = {}
         
-        products = []
         hierarchy = {}  # Build hierarchy incrementally to avoid memory issues
         
-        for i, record in enumerate(dataset):
-            if i >= 5:
-                break
- 
-            product = {
-                '_id': record.get('code'),
-                'lang': record.get('lang'),
-                'product_name': record.get('product_name'),
-                'brands': record.get('brands'),
-                'food_groups_tags': record.get('food_groups_tags'),
-                'product_quantity_unit': record.get('product_quantity_unit'),
-                'product_quantity': record.get('product_quantity'),
-                'quantity': record.get('quantity'),
-                'categories_tags': record.get('categories_tags'),
-                'categories': [c.strip() for c in record.get('categories', '').split(',') if record.get('categories')] if record.get('categories') else [],
-                'labels_tags': record.get('labels_tags'),
-                'labels': [l.strip() for l in record.get('labels', '').split(',') if record.get('labels')] if record.get('labels') else [],
-                'popularity_key': record.get('popularity_key'),
-                'popularity_tags': record.get('popularity_tags'),
-                'nutriscore_grade': record.get('nutriscore_grade'),
-                'nutriscore_score': record.get('nutriscore_score'),
-            }
-            products.append(product)
+        # Open products file for writing incrementally to avoid memory issues
+        products_filename = "products.json"
+        with open(products_filename, 'w', encoding='utf-8') as products_file:
+            products_file.write("[\n")  # Start JSON array
+            first_product = True
+            
+            for i, record in enumerate(dataset):
+                if i >= 5:
+                    break
+     
+                product = {
+                    '_id': record.get('code'),
+                    'lang': record.get('lang'),
+                    'product_name': record.get('product_name'),
+                    'brands': record.get('brands'),
+                    'food_groups_tags': record.get('food_groups_tags'),
+                    'product_quantity_unit': record.get('product_quantity_unit'),
+                    'product_quantity': record.get('product_quantity'),
+                    'quantity': record.get('quantity'),
+                    'categories_tags': record.get('categories_tags'),
+                    'categories': [c.strip() for c in record.get('categories', '').split(',') if record.get('categories')] if record.get('categories') else [],
+                    'labels_tags': record.get('labels_tags'),
+                    'labels': [l.strip() for l in record.get('labels', '').split(',') if record.get('labels')] if record.get('labels') else [],
+                    'popularity_key': record.get('popularity_key'),
+                    'popularity_tags': record.get('popularity_tags'),
+                    'nutriscore_grade': record.get('nutriscore_grade'),
+                    'nutriscore_score': record.get('nutriscore_score'),
+                }
+                
+                # Write product to file incrementally
+                if not first_product:
+                    products_file.write(",\n")
+                products_file.write("  ")
+                json.dump(product, products_file, ensure_ascii=False)
+                first_product = False
 
-            # Process food groups hierarchy directly in the loop to avoid memory issues
-            food_groups_tags = record.get('food_groups_tags', [])
-            if food_groups_tags:
-                # Build hierarchy: food_groups_tags[0] is child of food_groups_tags[1], etc.
-                for j in range(len(food_groups_tags)):
-                    child = food_groups_tags[j]
-                    
-                    if child not in hierarchy:
-                        hierarchy[child] = {'parent': None, 'children': []}
-                    
-                    # If there's a parent (next element in array)
-                    if j + 1 < len(food_groups_tags):
-                        parent = food_groups_tags[j + 1]
-                        hierarchy[child]['parent'] = parent
+                # Process food groups hierarchy directly in the loop to avoid memory issues
+                food_groups_tags = record.get('food_groups_tags', [])
+                if food_groups_tags:
+                    # Build hierarchy: food_groups_tags[0] is child of food_groups_tags[1], etc.
+                    for j in range(len(food_groups_tags)):
+                        child = food_groups_tags[j]
                         
-                        # Ensure parent exists in hierarchy
-                        if parent not in hierarchy:
-                            hierarchy[parent] = {'parent': None, 'children': []}
+                        if child not in hierarchy:
+                            hierarchy[child] = {'parent': None, 'children': []}
                         
-                        # Add child to parent's children list if not already there
-                        if child not in hierarchy[parent]['children']:
-                            hierarchy[parent]['children'].append(child)
+                        # If there's a parent (next element in array)
+                        if j + 1 < len(food_groups_tags):
+                            parent = food_groups_tags[j + 1]
+                            hierarchy[child]['parent'] = parent
+                            
+                            # Ensure parent exists in hierarchy
+                            if parent not in hierarchy:
+                                hierarchy[parent] = {'parent': None, 'children': []}
+                            
+                            # Add child to parent's children list if not already there
+                            if child not in hierarchy[parent]['children']:
+                                hierarchy[parent]['children'].append(child)
 
-            lang = record.get('lang', "None_LANG_ATTRIBUTE")
-            langs_map[lang] = langs_map.get(lang, 0) + 1
+                lang = record.get('lang', "None_LANG_ATTRIBUTE")
+                langs_map[lang] = langs_map.get(lang, 0) + 1
 
-            print(f"Record {i + 1}: {lang}")
+                print(f"Record {i + 1}: {lang}")
 
-
+            # Close JSON array and file
+            products_file.write("\n]")
+        
         print("Language distribution:")
         for lang, count in langs_map.items():
             print(f" - {lang}: {count}")
         
-        print(f"Successfully downloaded {len(products)} records")
+        print(f"Successfully downloaded and saved {i + 1} records to '{products_filename}'")
 
-        save_products_to_json(products)
         save_hierarchy_to_json(hierarchy)
 
     except ImportError:
@@ -101,18 +112,8 @@ def download_from_huggingface():
         return []
 
 
-def save_products_to_json(products: List[Dict[str, Any]]) -> None:
-    """Save the products to a JSON file."""
-    filename = "products.json"
-    try:
-        with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(products, f, indent=2, ensure_ascii=False)
-        print(f"Products saved to '{filename}'")
-    except Exception as e:
-        print(f"Error saving products to JSON: {e}")
 
-
-def save_hierarchy_to_json(hierarchy: Dict[str, Any]) -> None:
+def save_hierarchy_to_json(hierarchy: dict) -> None:
     """Save food groups hierarchy to a separate file."""
     filename = "food_groups_hierarchy.json"
     
@@ -124,49 +125,6 @@ def save_hierarchy_to_json(hierarchy: Dict[str, Any]) -> None:
         print(f"Error saving food groups hierarchy: {e}")
 
 
-def build_food_groups_hierarchy(products: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Build food groups hierarchy from products data."""
-    hierarchy = {}
-    
-    for product in products:
-        food_groups_tags = product.get('food_groups_tags', [])
-        if not food_groups_tags:
-            continue
-            
-        # Build hierarchy: food_groups_tags[0] is child of food_groups_tags[1], etc.
-        for i in range(len(food_groups_tags)):
-            child = food_groups_tags[i]
-            
-            if child not in hierarchy:
-                hierarchy[child] = {'parent': None, 'children': []}
-            
-            # If there's a parent (next element in array)
-            if i + 1 < len(food_groups_tags):
-                parent = food_groups_tags[i + 1]
-                hierarchy[child]['parent'] = parent
-                
-                # Ensure parent exists in hierarchy
-                if parent not in hierarchy:
-                    hierarchy[parent] = {'parent': None, 'children': []}
-                
-                # Add child to parent's children list if not already there
-                if child not in hierarchy[parent]['children']:
-                    hierarchy[parent]['children'].append(child)
-    
-    return hierarchy
-
-
-def save_food_groups_hierarchy(products: List[Dict[str, Any]]) -> None:
-    """Build and save food groups hierarchy to a separate file."""
-    hierarchy = build_food_groups_hierarchy(products)
-    filename = "food_groups_hierarchy.json"
-    
-    try:
-        with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(hierarchy, f, indent=2, ensure_ascii=False)
-        print(f"Food groups hierarchy saved to '{filename}'")
-    except Exception as e:
-        print(f"Error saving food groups hierarchy: {e}")
 
 
 # def print_records(records: List[Dict[str, Any]]) -> None:
@@ -190,21 +148,6 @@ def main():
     
     # Try to download from Hugging Face
     download_from_huggingface()
-    
-    # If products.json exists, also process it for food groups hierarchy
-    try:
-        with open("products.json", 'r', encoding='utf-8') as f:
-            existing_products = json.load(f)
-            if existing_products:
-                print("Processing existing products for food groups hierarchy...")
-                save_food_groups_hierarchy(existing_products)
-    except FileNotFoundError:
-        print("No existing products.json found")
-    except Exception as e:
-        print(f"Error processing existing products: {e}")
-    
-    # Print the records to console
-    # print_records(records)
     
     print(f"Processing complete!")
     
