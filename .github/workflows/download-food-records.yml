@@ -40,12 +40,17 @@ jobs:
         make run
         echo "✅ Food records download completed!"
         
-    - name: Upload products as artifact
+    - name: Upload artifacts
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: products
-        path: products.json
+        name: food-data-outputs
+        path: |
+          products.json
+          food_groups_hierarchy.json
+          unique_food_groups.json
+          categories_hierarchy.json
+          unique_categories.json
         retention-days: 30
         
     - name: Upload run summary
@@ -56,5 +61,10 @@ jobs:
         echo "✅ **Status**: Completed successfully" >> $GITHUB_STEP_SUMMARY
         echo "📊 **Records**: 5 food product records downloaded and displayed" >> $GITHUB_STEP_SUMMARY
         echo "🔗 **Source**: OpenFoodFacts dataset via Hugging Face" >> $GITHUB_STEP_SUMMARY
-        echo "📁 **Artifact**: Products saved as 'products' artifact" >> $GITHUB_STEP_SUMMARY
+        echo "📁 **Artifacts**: All outputs saved as 'food-data-outputs' artifact" >> $GITHUB_STEP_SUMMARY
+        echo "  - **Products**: products.json" >> $GITHUB_STEP_SUMMARY
+        echo "  - **Food Groups Hierarchy**: food_groups_hierarchy.json" >> $GITHUB_STEP_SUMMARY
+        echo "  - **Unique Food Groups**: unique_food_groups.json" >> $GITHUB_STEP_SUMMARY
+        echo "  - **Categories Hierarchy**: categories_hierarchy.json" >> $GITHUB_STEP_SUMMARY
+        echo "  - **Unique Categories**: unique_categories.json" >> $GITHUB_STEP_SUMMARY
         echo "⏰ **Timestamp**: $(date -u)" >> $GITHUB_STEP_SUMMARY
