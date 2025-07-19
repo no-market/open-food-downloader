@@ -29,6 +29,8 @@ def download_from_huggingface():
         
         hierarchy = {}  # Build hierarchy incrementally to avoid memory issues
         unique_food_groups = set()  # Collect unique food group tags
+        categories_hierarchy = {}  # Build categories hierarchy separately
+        unique_categories = set()  # Collect unique category tags
         
         # Open products file for writing incrementally to avoid memory issues
         products_filename = "products.json"
@@ -92,6 +94,31 @@ def download_from_huggingface():
                             if child not in hierarchy[parent]['children']:
                                 hierarchy[parent]['children'].append(child)
 
+                # Process categories hierarchy directly in the loop to avoid memory issues
+                categories_tags = record.get('categories_tags', [])
+                if categories_tags:
+                    # Add all tags to unique set
+                    unique_categories.update(categories_tags)
+                    
+                    # Build hierarchy: categories_tags[0] is parent of categories_tags[1], etc.
+                    for j in range(len(categories_tags)):
+                        parent = categories_tags[j]
+                        
+                        if parent not in categories_hierarchy:
+                            categories_hierarchy[parent] = {'parent': None, 'children': []}
+                        
+                        # If there's a child (next element in array)
+                        if j + 1 < len(categories_tags):
+                            child = categories_tags[j + 1]
+                            categories_hierarchy[parent]['children'].append(child) if child not in categories_hierarchy[parent]['children'] else None
+                            
+                            # Ensure child exists in hierarchy
+                            if child not in categories_hierarchy:
+                                categories_hierarchy[child] = {'parent': None, 'children': []}
+                            
+                            # Set parent-child relationship
+                            categories_hierarchy[child]['parent'] = parent
+
                 lang = record.get('lang', "None_LANG_ATTRIBUTE")
                 langs_map[lang] = langs_map.get(lang, 0) + 1
 
@@ -108,6 +135,8 @@ def download_from_huggingface():
 
         save_hierarchy_to_json(hierarchy)
         save_unique_food_groups_to_json(unique_food_groups)
+        save_categories_hierarchy_to_json(categories_hierarchy)
+        save_unique_categories_to_json(unique_categories)
 
     except ImportError:
         print("Required packages not installed. Please run: pip install -r requirements.txt")
@@ -178,6 +207,35 @@ def save_unique_food_groups_to_json(unique_food_groups: set) -> None:
         print(f"Unique food groups ({len(unique_list)} tags) saved to '{filename}'")
     except Exception as e:
         print(f"Error saving unique food groups: {e}")
+
+
+def save_categories_hierarchy_to_json(flat_hierarchy: dict) -> None:
+    """Save categories hierarchy to a separate file in nested format."""
+    filename = "categories_hierarchy.json"
+    
+    try:
+        # Convert flat hierarchy to nested format
+        nested_hierarchy = build_nested_hierarchy(flat_hierarchy)
+        
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(nested_hierarchy, f, indent=2, ensure_ascii=False)
+        print(f"Categories hierarchy saved to '{filename}'")
+    except Exception as e:
+        print(f"Error saving categories hierarchy: {e}")
+
+
+def save_unique_categories_to_json(unique_categories: set) -> None:
+    """Save unique category tags to a separate file."""
+    filename = "unique_categories.json"
+    
+    try:
+        # Convert set to sorted list for consistent output
+        unique_list = sorted(list(unique_categories))
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(unique_list, f, indent=2, ensure_ascii=False)
+        print(f"Unique categories ({len(unique_list)} tags) saved to '{filename}'")
+    except Exception as e:
+        print(f"Error saving unique categories: {e}")
 
 
 
