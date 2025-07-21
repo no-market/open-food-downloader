@@ -31,7 +31,7 @@ def download_from_huggingface():
             # Test connection
             client.admin.command('ping')
             db = client.get_database()  # Use default database from URI or 'test'
-            collection = db.products
+            collection = db['products-catalog']
             print("Successfully connected to MongoDB")
         except (ConnectionFailure, ConfigurationError) as e:
             print(f"Error connecting to MongoDB: {e}")
@@ -55,8 +55,8 @@ def download_from_huggingface():
         
         # Process records and store directly in MongoDB
         for i, record in enumerate(dataset):
-            # if i >= 5:
-            #     break
+            if i >= 5:
+                break
             
             # Extract unique product names from product_name array
             product_names = record.get('product_name', [])
@@ -195,18 +195,6 @@ def save_unique_categories_to_json(unique_categories: set) -> None:
         print(f"Error saving unique categories: {e}")
 
 
-
-
-# def print_records(records: List[Dict[str, Any]]) -> None:
-#     """Print records to console as raw data."""
-#     if not records:
-#         print("No records to display")
-#         return
-    
-#     for i, record in enumerate(records, 1):
-#         print(f"RECORD {i}:")
-#         print(json.dumps(record, indent=2, ensure_ascii=False))
-#         print()
 
 
 def main():
