@@ -1,18 +1,41 @@
 #!/usr/bin/env python3
 """
 Script to download and extract food records from OpenFoodFacts dataset.
-Downloads first 5 records from the Hugging Face dataset and prints them to console.
+Downloads records from the Hugging Face dataset and stores them in MongoDB.
 """
 
 import json
+import os
 import sys
 
 
 
 def download_from_huggingface():
-    """Download first 5 records from the OpenFoodFacts dataset on Hugging Face."""
+    """Download records from the OpenFoodFacts dataset on Hugging Face and store in MongoDB."""
     try:
         from datasets import load_dataset
+        from pymongo import MongoClient
+        from pymongo.errors import ConnectionFailure, ConfigurationError
+        
+        # Get MongoDB URI from environment variable
+        mongo_uri = os.getenv('MONGO_URI')
+        if not mongo_uri:
+            print("Error: MONGO_URI environment variable not set")
+            print("Please set the MongoDB connection URI in the MONGO_URI environment variable")
+            return []
+        
+        # Initialize MongoDB connection
+        try:
+            print(f"Connecting to MongoDB...")
+            client = MongoClient(mongo_uri)
+            # Test connection
+            client.admin.command('ping')
+            db = client.get_database()  # Use default database from URI or 'test'
+            collection = db['products-catalog']
+            print("Successfully connected to MongoDB")
+        except (ConnectionFailure, ConfigurationError) as e:
+            print(f"Error connecting to MongoDB: {e}")
+            return []
         
         print("Downloading dataset from Hugging Face...")
         print("Dataset: openfoodfacts/product-database")
@@ -24,118 +47,113 @@ def download_from_huggingface():
         dataset = dataset.filter(lambda record: record.get('lang') == 'pl')
         
         print("Dataset loaded successfully!")
-        print("Extracting records...")
+        print("Extracting and storing records in MongoDB...")
         langs_map = {}
         
         unique_food_groups = set()  # Collect unique food group tags
         unique_categories = set()  # Collect unique category tags
         
-        # Open products file for writing incrementally to avoid memory issues
-        products_filename = "products.json"
-        with open(products_filename, 'w', encoding='utf-8') as products_file:
-            products_file.write("[\n")  # Start JSON array
-            first_product = True
+        # Process records and store directly in MongoDB
+        for i, record in enumerate(dataset):
+            if i >= 5:
+                break
             
-            for i, record in enumerate(dataset):
-                # if i >= 5:
-                #     break
-                
-                # Extract unique product names from product_name array
-                product_names = record.get('product_name', [])
-                unique_product_names = []
-                if isinstance(product_names, list):
-                    seen_texts = set()
-                    for name_obj in product_names:
-                        if isinstance(name_obj, dict) and 'text' in name_obj:
-                            text = name_obj['text']
-                            if text and text not in seen_texts:
-                                unique_product_names.append(text)
-                                seen_texts.add(text)
-                
-                # Build search_string by concatenating specified fields
-                search_components = []
-                
-                # Add unique product names
-                search_components.extend(unique_product_names)
-                
-                # Add quantity
-                quantity = record.get('quantity', '')
-                if quantity:
-                    search_components.append(quantity)
-                
-                # Add brands  
-                brands = record.get('brands', '')
-                if brands:
-                    search_components.append(brands)
-                
-                # Add categories
-                categories = record.get('categories', '')
-                if categories:
-                    search_components.append(categories)
-                
-                # Add labels
-                labels = record.get('labels', '')
-                if labels:
-                    search_components.append(labels)
-                
-                # Create comma-separated search string (lowercase)
-                search_string = ', '.join(search_components).lower()
-    
-                product = {
-                    '_id': record.get('code'),
-                    'lang': record.get('lang'),
-                    'product_name': record.get('product_name'),
-                    'brands': record.get('brands'),
-                    'food_groups_tags': record.get('food_groups_tags'),
-                    'product_quantity_unit': record.get('product_quantity_unit'),
-                    'product_quantity': record.get('product_quantity'),
-                    'quantity': record.get('quantity'),
-                    'categories_tags': record.get('categories_tags'),
-                    'categories': [c.strip() for c in record.get('categories', '').split(',') if record.get('categories')] if record.get('categories') else [],
-                    'labels_tags': record.get('labels_tags'),
-                    'labels': [l.strip() for l in record.get('labels', '').split(',') if record.get('labels')] if record.get('labels') else [],
-                    'popularity_key': record.get('popularity_key'),
-                    'popularity_tags': record.get('popularity_tags'),
-                    'nutriscore_grade': record.get('nutriscore_grade'),
-                    'nutriscore_score': record.get('nutriscore_score'),
-                    'search_string': search_string,
-                }
-                
-                # Write product to file incrementally
-                if not first_product:
-                    products_file.write(",\n")
-                products_file.write("  ")
-                json.dump(product, products_file, ensure_ascii=False)
-                first_product = False
+            # Extract unique product names from product_name array
+            product_names = record.get('product_name', [])
+            unique_product_names = []
+            if isinstance(product_names, list):
+                seen_texts = set()
+                for name_obj in product_names:
+                    if isinstance(name_obj, dict) and 'text' in name_obj:
+                        text = name_obj['text']
+                        if text and text not in seen_texts:
+                            unique_product_names.append(text)
+                            seen_texts.add(text)
+            
+            # Build search_string by concatenating specified fields
+            search_components = []
+            
+            # Add unique product names
+            search_components.extend(unique_product_names)
+            
+            # Add quantity
+            quantity = record.get('quantity', '')
+            if quantity:
+                search_components.append(quantity)
+            
+            # Add brands  
+            brands = record.get('brands', '')
+            if brands:
+                search_components.append(brands)
+            
+            # Add categories
+            categories = record.get('categories', '')
+            if categories:
+                search_components.append(categories)
+            
+            # Add labels
+            labels = record.get('labels', '')
+            if labels:
+                search_components.append(labels)
+            
+            # Create comma-separated search string (lowercase)
+            search_string = ', '.join(search_components).lower()
 
-                # Collect unique food groups tags
-                food_groups_tags = record.get('food_groups_tags', [])
-                if food_groups_tags:
-                    # Add all tags to unique set
-                    unique_food_groups.update(food_groups_tags)
+            product = {
+                '_id': record.get('code'),
+                'lang': record.get('lang'),
+                'product_name': record.get('product_name'),
+                'brands': record.get('brands'),
+                'food_groups_tags': record.get('food_groups_tags'),
+                'product_quantity_unit': record.get('product_quantity_unit'),
+                'product_quantity': record.get('product_quantity'),
+                'quantity': record.get('quantity'),
+                'categories_tags': record.get('categories_tags'),
+                'categories': [c.strip() for c in record.get('categories', '').split(',') if record.get('categories')] if record.get('categories') else [],
+                'labels_tags': record.get('labels_tags'),
+                'labels': [l.strip() for l in record.get('labels', '').split(',') if record.get('labels')] if record.get('labels') else [],
+                'popularity_key': record.get('popularity_key'),
+                'popularity_tags': record.get('popularity_tags'),
+                'nutriscore_grade': record.get('nutriscore_grade'),
+                'nutriscore_score': record.get('nutriscore_score'),
+                'search_string': search_string,
+            }
+            
+            # Store product directly in MongoDB (upsert to handle duplicates)
+            try:
+                collection.replace_one({'_id': product['_id']}, product, upsert=True)
+            except Exception as e:
+                print(f"Error upserting product {product.get('_id')}: {e}")
+                continue
 
-                # Collect unique categories tags
-                categories_tags = record.get('categories_tags', [])
-                if categories_tags:
-                    # Add all tags to unique set
-                    unique_categories.update(categories_tags)
+            # Collect unique food groups tags
+            food_groups_tags = record.get('food_groups_tags', [])
+            if food_groups_tags:
+                # Add all tags to unique set
+                unique_food_groups.update(food_groups_tags)
 
-                lang = record.get('lang', "None_LANG_ATTRIBUTE")
-                langs_map[lang] = langs_map.get(lang, 0) + 1
+            # Collect unique categories tags
+            categories_tags = record.get('categories_tags', [])
+            if categories_tags:
+                # Add all tags to unique set
+                unique_categories.update(categories_tags)
 
-                print(f"Record {i + 1}: {lang}")
+            lang = record.get('lang', "None_LANG_ATTRIBUTE")
+            langs_map[lang] = langs_map.get(lang, 0) + 1
 
-            # Close JSON array and file
-            products_file.write("\n]")
-        
+            print(f"Record {i + 1}: {lang} - Stored in MongoDB")
+
         print("Language distribution:")
         for lang, count in langs_map.items():
             print(f" - {lang}: {count}")
         
-        print(f"Successfully downloaded and saved {i + 1} records to '{products_filename}'")
+        print(f"Successfully processed and stored {i + 1} records in MongoDB")
 
         save_unique_food_groups_to_json(unique_food_groups)
         save_unique_categories_to_json(unique_categories)
+        
+        # Close MongoDB connection
+        client.close()
 
     except ImportError:
         print("Required packages not installed. Please run: pip install -r requirements.txt")
@@ -179,22 +197,10 @@ def save_unique_categories_to_json(unique_categories: set) -> None:
 
 
 
-# def print_records(records: List[Dict[str, Any]]) -> None:
-#     """Print records to console as raw data."""
-#     if not records:
-#         print("No records to display")
-#         return
-    
-#     for i, record in enumerate(records, 1):
-#         print(f"RECORD {i}:")
-#         print(json.dumps(record, indent=2, ensure_ascii=False))
-#         print()
-
-
 def main():
-    """Main function to download and display food records."""
+    """Main function to download and store food records in MongoDB."""
     print("OpenFoodFacts Product Downloader")
-    print("Downloading first 5 food records from dataset")
+    print("Downloading food records from dataset and storing in MongoDB")
     print("Source: https://huggingface.co/datasets/openfoodfacts/product-database")
     print()
     

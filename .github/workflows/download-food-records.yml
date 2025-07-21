@@ -35,6 +35,8 @@ jobs:
       run: make install
         
     - name: Download and display food records
+      env:
+        MONGO_URI: ${{ secrets.MONGO_URI }}
       run: |
         echo "🚀 Starting food records download..."
         make run

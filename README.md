@@ -1,21 +1,43 @@
 # open-food-downloader
 
-A Python script to download and display food product records from the OpenFoodFacts dataset.
+A Python script to download and store food product records from the OpenFoodFacts dataset in MongoDB.
 
 ## Features
 
-- Downloads the first 5 food product records from the [OpenFoodFacts dataset](https://huggingface.co/datasets/openfoodfacts/product-database) on Hugging Face
-- Displays records in a formatted console output with key product information
+- Downloads food product records from the [OpenFoodFacts dataset](https://huggingface.co/datasets/openfoodfacts/product-database) on Hugging Face
+- Stores product data directly in MongoDB in real-time (no intermediate mapping)
+- Configurable MongoDB connection via environment variable
 - Includes fallback mock data for testing when internet access is not available
 - GitHub Actions workflow for manual execution
 
+## Prerequisites
+
+- Python 3.x
+- MongoDB database (local or cloud-hosted like MongoDB Atlas)
+- MongoDB connection URI
+
 ## Usage
+
+### Environment Variables
+
+Set the MongoDB connection URI using the environment variable:
+- `MONGO_URI`
+
+Example:
+```bash
+export MONGO_URI="mongodb://localhost:27017/openfooddb"
+# or for MongoDB Atlas:
+export MONGO_URI="mongodb+srv://user:password@cluster.mongodb.net/openfooddb"
+```
 
 ### Local execution
 
 ```bash
 # Install dependencies
 pip install -r requirements.txt
+
+# Set MongoDB URI
+export MONGO_URI="mongodb://localhost:27017/openfooddb"
 
 # Run the script
 python3 download_products.py
@@ -26,6 +48,9 @@ python3 download_products.py
 ```bash
 # Set up virtual environment and install dependencies
 make install
+
+# Set MongoDB URI
+export MONGO_URI="mongodb://localhost:27017/openfooddb"
 
 # Run the script
 make run
@@ -40,10 +65,12 @@ The repository includes a GitHub Action workflow that can be triggered manually:
 3. Click "Run workflow" button
 4. Optionally add a description for the run
 
-## Output
+Note: For GitHub Actions, you'll need to set the `MONGO_URI` as a repository secret.
 
-The script displays 5 food product records with the following information for each:
-- Product Code
+## Data Storage
+
+The script stores product records directly in a MongoDB collection named `products`. Each product document contains:
+- Product Code (_id)
 - Product Name  
 - Brand
 - Categories
@@ -51,14 +78,22 @@ The script displays 5 food product records with the following information for ea
 - Ingredients
 - Nutrition Grade
 - Main Category
-- Created Date
+- Search String
+- And other OpenFoodFacts fields
+
+The unique food groups and categories are still saved as JSON files (`unique_food_groups.json` and `unique_categories.json`) for reference.
 
 ## Dependencies
 
 - `datasets>=4.0.0` - For downloading from Hugging Face
 - `huggingface_hub>=0.33.0` - Hugging Face Hub integration
 - `requests>=2.32.0` - HTTP requests
+- `pymongo>=4.0.0` - MongoDB connectivity
 
-## Fallback Mode
+## Error Handling
 
-When internet access is not available or the dataset cannot be downloaded, the script automatically falls back to displaying mock data that demonstrates the expected output format.
+The script includes robust error handling for:
+- Missing MongoDB URI environment variable
+- MongoDB connection failures
+- Individual document insertion errors (continues processing)
+- Network connectivity issues
