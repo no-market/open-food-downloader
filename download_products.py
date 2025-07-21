@@ -119,11 +119,11 @@ def download_from_huggingface():
                 'search_string': search_string,
             }
             
-            # Store product directly in MongoDB
+            # Store product directly in MongoDB (upsert to handle duplicates)
             try:
-                collection.insert_one(product)
+                collection.replace_one({'_id': product['_id']}, product, upsert=True)
             except Exception as e:
-                print(f"Error inserting product {product.get('_id')}: {e}")
+                print(f"Error upserting product {product.get('_id')}: {e}")
                 continue
 
             # Collect unique food groups tags
