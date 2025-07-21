@@ -71,18 +71,12 @@ def download_from_huggingface():
                 # Add categories
                 categories = record.get('categories', '')
                 if categories:
-                    if isinstance(categories, list):
-                        search_components.extend(categories)
-                    else:
-                        search_components.append(categories)
+                    search_components.append(categories)
                 
                 # Add labels
                 labels = record.get('labels', '')
                 if labels:
-                    if isinstance(labels, list):
-                        search_components.extend(labels)
-                    else:
-                        search_components.append(labels)
+                    search_components.append(labels)
                 
                 # Create comma-separated search string
                 search_string = ', '.join(search_components)
@@ -97,9 +91,9 @@ def download_from_huggingface():
                     'product_quantity': record.get('product_quantity'),
                     'quantity': record.get('quantity'),
                     'categories_tags': record.get('categories_tags'),
-                    'categories': record.get('categories', []) if isinstance(record.get('categories'), list) else [c.strip() for c in record.get('categories', '').split(',') if record.get('categories')] if record.get('categories') else [],
+                    'categories': [c.strip() for c in record.get('categories', '').split(',') if record.get('categories')] if record.get('categories') else [],
                     'labels_tags': record.get('labels_tags'),
-                    'labels': record.get('labels', []) if isinstance(record.get('labels'), list) else [l.strip() for l in record.get('labels', '').split(',') if record.get('labels')] if record.get('labels') else [],
+                    'labels': [l.strip() for l in record.get('labels', '').split(',') if record.get('labels')] if record.get('labels') else [],
                     'popularity_key': record.get('popularity_key'),
                     'popularity_tags': record.get('popularity_tags'),
                     'nutriscore_grade': record.get('nutriscore_grade'),
