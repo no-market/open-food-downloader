@@ -18,9 +18,9 @@ def download_from_huggingface():
         from pymongo.errors import ConnectionFailure, ConfigurationError
         
         # Get MongoDB URI from environment variable
-        mongo_uri = os.getenv('MONGO_URI', os.getenv('MONGODB_URI'))
+        mongo_uri = os.getenv('MONGO_URI')
         if not mongo_uri:
-            print("Error: MONGO_URI or MONGODB_URI environment variable not set")
+            print("Error: MONGO_URI environment variable not set")
             print("Please set the MongoDB connection URI in the MONGO_URI environment variable")
             return []
         

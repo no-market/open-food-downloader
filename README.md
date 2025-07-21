@@ -20,9 +20,8 @@ A Python script to download and store food product records from the OpenFoodFact
 
 ### Environment Variables
 
-Set the MongoDB connection URI using one of these environment variables:
-- `MONGO_URI` (preferred)
-- `MONGODB_URI` (alternative)
+Set the MongoDB connection URI using the environment variable:
+- `MONGO_URI`
 
 Example:
 ```bash
