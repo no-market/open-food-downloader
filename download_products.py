@@ -27,9 +27,7 @@ def download_from_huggingface():
         print("Extracting records...")
         langs_map = {}
         
-        hierarchy = {}  # Build hierarchy incrementally to avoid memory issues
         unique_food_groups = set()  # Collect unique food group tags
-        categories_hierarchy = {}  # Build categories hierarchy separately
         unique_categories = set()  # Collect unique category tags
         
         # Open products file for writing incrementally to avoid memory issues
@@ -41,7 +39,48 @@ def download_from_huggingface():
             for i, record in enumerate(dataset):
                 # if i >= 5:
                 #     break
-     
+                
+                # Extract unique product names from product_name array
+                product_names = record.get('product_name', [])
+                unique_product_names = []
+                if isinstance(product_names, list):
+                    seen_texts = set()
+                    for name_obj in product_names:
+                        if isinstance(name_obj, dict) and 'text' in name_obj:
+                            text = name_obj['text']
+                            if text and text not in seen_texts:
+                                unique_product_names.append(text)
+                                seen_texts.add(text)
+                
+                # Build search_string by concatenating specified fields
+                search_components = []
+                
+                # Add unique product names
+                search_components.extend(unique_product_names)
+                
+                # Add quantity
+                quantity = record.get('quantity', '')
+                if quantity:
+                    search_components.append(quantity)
+                
+                # Add brands  
+                brands = record.get('brands', '')
+                if brands:
+                    search_components.append(brands)
+                
+                # Add categories
+                categories = record.get('categories', '')
+                if categories:
+                    search_components.append(categories)
+                
+                # Add labels
+                labels = record.get('labels', '')
+                if labels:
+                    search_components.append(labels)
+                
+                # Create comma-separated search string
+                search_string = ', '.join(search_components)
+    
                 product = {
                     '_id': record.get('code'),
                     'lang': record.get('lang'),
@@ -59,6 +98,7 @@ def download_from_huggingface():
                     'popularity_tags': record.get('popularity_tags'),
                     'nutriscore_grade': record.get('nutriscore_grade'),
                     'nutriscore_score': record.get('nutriscore_score'),
+                    'search_string': search_string,
                 }
                 
                 # Write product to file incrementally
@@ -68,56 +108,17 @@ def download_from_huggingface():
                 json.dump(product, products_file, ensure_ascii=False)
                 first_product = False
 
-                # Process food groups hierarchy directly in the loop to avoid memory issues
+                # Collect unique food groups tags
                 food_groups_tags = record.get('food_groups_tags', [])
                 if food_groups_tags:
                     # Add all tags to unique set
                     unique_food_groups.update(food_groups_tags)
-                    
-                    # Build hierarchy: food_groups_tags[0] is child of food_groups_tags[1], etc.
-                    for j in range(len(food_groups_tags)):
-                        child = food_groups_tags[j]
-                        
-                        if child not in hierarchy:
-                            hierarchy[child] = {'parent': None, 'children': []}
-                        
-                        # If there's a parent (next element in array)
-                        if j + 1 < len(food_groups_tags):
-                            parent = food_groups_tags[j + 1]
-                            hierarchy[child]['parent'] = parent
-                            
-                            # Ensure parent exists in hierarchy
-                            if parent not in hierarchy:
-                                hierarchy[parent] = {'parent': None, 'children': []}
-                            
-                            # Add child to parent's children list if not already there
-                            if child not in hierarchy[parent]['children']:
-                                hierarchy[parent]['children'].append(child)
 
-                # Process categories hierarchy directly in the loop to avoid memory issues
+                # Collect unique categories tags
                 categories_tags = record.get('categories_tags', [])
                 if categories_tags:
                     # Add all tags to unique set
                     unique_categories.update(categories_tags)
-                    
-                    # Build hierarchy: categories_tags[0] is parent of categories_tags[1], etc.
-                    for j in range(len(categories_tags)):
-                        parent = categories_tags[j]
-                        
-                        if parent not in categories_hierarchy:
-                            categories_hierarchy[parent] = {'parent': None, 'children': []}
-                        
-                        # If there's a child (next element in array)
-                        if j + 1 < len(categories_tags):
-                            child = categories_tags[j + 1]
-                            categories_hierarchy[parent]['children'].append(child) if child not in categories_hierarchy[parent]['children'] else None
-                            
-                            # Ensure child exists in hierarchy
-                            if child not in categories_hierarchy:
-                                categories_hierarchy[child] = {'parent': None, 'children': []}
-                            
-                            # Set parent-child relationship
-                            categories_hierarchy[child]['parent'] = parent
 
                 lang = record.get('lang', "None_LANG_ATTRIBUTE")
                 langs_map[lang] = langs_map.get(lang, 0) + 1
@@ -133,9 +134,7 @@ def download_from_huggingface():
         
         print(f"Successfully downloaded and saved {i + 1} records to '{products_filename}'")
 
-        save_hierarchy_to_json(hierarchy)
         save_unique_food_groups_to_json(unique_food_groups)
-        save_categories_hierarchy_to_json(categories_hierarchy)
         save_unique_categories_to_json(unique_categories)
 
     except ImportError:
@@ -146,53 +145,6 @@ def download_from_huggingface():
         return []
 
 
-
-def build_nested_hierarchy(flat_hierarchy):
-    """
-    Convert flat hierarchy to nested hierarchy structure.
-    
-    Args:
-        flat_hierarchy: Dict with structure {tag: {'parent': parent_tag, 'children': [child_tags]}}
-    
-    Returns:
-        Dict with nested structure where only root nodes are at top level
-    """
-    # Find root nodes (nodes with no parent)
-    root_nodes = {tag: data for tag, data in flat_hierarchy.items() if data['parent'] is None}
-    
-    def build_children_tree(node_tag):
-        """Recursively build the nested children structure for a node."""
-        if node_tag not in flat_hierarchy:
-            return {"children": []}
-        
-        children_list = []
-        for child_tag in flat_hierarchy[node_tag]['children']:
-            child_tree = build_children_tree(child_tag)
-            children_list.append({child_tag: child_tree})
-        
-        return {"children": children_list}
-    
-    # Build the nested structure
-    nested_hierarchy = {}
-    for root_tag in root_nodes:
-        nested_hierarchy[root_tag] = build_children_tree(root_tag)
-    
-    return nested_hierarchy
-
-
-def save_hierarchy_to_json(flat_hierarchy: dict) -> None:
-    """Save food groups hierarchy to a separate file in nested format."""
-    filename = "food_groups_hierarchy.json"
-    
-    try:
-        # Convert flat hierarchy to nested format
-        nested_hierarchy = build_nested_hierarchy(flat_hierarchy)
-        
-        with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(nested_hierarchy, f, indent=2, ensure_ascii=False)
-        print(f"Food groups hierarchy saved to '{filename}'")
-    except Exception as e:
-        print(f"Error saving food groups hierarchy: {e}")
 
 
 def save_unique_food_groups_to_json(unique_food_groups: set) -> None:
@@ -209,19 +161,6 @@ def save_unique_food_groups_to_json(unique_food_groups: set) -> None:
         print(f"Error saving unique food groups: {e}")
 
 
-def save_categories_hierarchy_to_json(flat_hierarchy: dict) -> None:
-    """Save categories hierarchy to a separate file in nested format."""
-    filename = "categories_hierarchy.json"
-    
-    try:
-        # Convert flat hierarchy to nested format
-        nested_hierarchy = build_nested_hierarchy(flat_hierarchy)
-        
-        with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(nested_hierarchy, f, indent=2, ensure_ascii=False)
-        print(f"Categories hierarchy saved to '{filename}'")
-    except Exception as e:
-        print(f"Error saving categories hierarchy: {e}")
 
 
 def save_unique_categories_to_json(unique_categories: set) -> None:
