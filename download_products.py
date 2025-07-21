@@ -78,8 +78,8 @@ def download_from_huggingface():
                 if labels:
                     search_components.append(labels)
                 
-                # Create comma-separated search string
-                search_string = ', '.join(search_components)
+                # Create comma-separated search string (lowercase)
+                search_string = ', '.join(search_components).lower()
     
                 product = {
                     '_id': record.get('code'),
