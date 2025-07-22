@@ -279,6 +279,7 @@ def main():
             print(f"     Brands: {brands if brands else 'N/A'}")
             print(f"     Categories: {', '.join(categories) if categories else 'N/A'}")
             print(f"     Labels: {', '.join(labels) if labels else 'N/A'}")
+            print(f"     Text: {result.get('search_string', '')}")
             print()
     
     if results['word_search']['results']:
@@ -302,6 +303,7 @@ def main():
             print(f"     Brands: {brands if brands else 'N/A'}")
             print(f"     Categories: {', '.join(categories) if categories else 'N/A'}")
             print(f"     Labels: {', '.join(labels) if labels else 'N/A'}")
+            print(f"     Text: {result.get('search_string', '')}")
             print()
 
 
