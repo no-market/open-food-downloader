@@ -171,6 +171,28 @@ def search_products(search_string: str) -> Dict[str, Any]:
         return {"error": error_msg}
 
 
+def extract_unique_product_names(product_name_data) -> List[str]:
+    """
+    Extract unique product names from product_name array.
+    
+    Args:
+        product_name_data: The product_name field from MongoDB document
+        
+    Returns:
+        List of unique product names
+    """
+    unique_product_names = []
+    if isinstance(product_name_data, list):
+        seen_texts = set()
+        for name_obj in product_name_data:
+            if isinstance(name_obj, dict) and 'text' in name_obj:
+                text = name_obj['text']
+                if text and text not in seen_texts:
+                    unique_product_names.append(text)
+                    seen_texts.add(text)
+    return unique_product_names
+
+
 def save_results(results: Dict[str, Any], output_file: str = None) -> str:
     """
     Save search results to a JSON file.
@@ -237,22 +259,52 @@ def main():
     
     # Print top results
     if results['direct_search']['results']:
-        print("\nTop direct search results:")
-        for i, result in enumerate(results['direct_search']['results'][:3]):
+        print("\nTop 10 direct search results:")
+        for i, result in enumerate(results['direct_search']['results'][:10]):
             score = result.get('score', 0)
             product_id = result.get('_id', 'Unknown')
-            search_text = result.get('search_string', '')[:100] + ('...' if len(result.get('search_string', '')) > 100 else '')
+            
+            # Extract unique product names
+            unique_product_names = extract_unique_product_names(result.get('product_name', []))
+            
+            # Get other requested fields
+            quantity = result.get('quantity', '')
+            brands = result.get('brands', '')
+            categories = result.get('categories', [])
+            labels = result.get('labels', [])
+            
             print(f"  {i+1}. Score: {score:.2f} - ID: {product_id}")
-            print(f"     Text: {search_text}")
+            print(f"     Product Names: {', '.join(unique_product_names) if unique_product_names else 'N/A'}")
+            print(f"     Quantity: {quantity if quantity else 'N/A'}")
+            print(f"     Brands: {brands if brands else 'N/A'}")
+            print(f"     Categories: {', '.join(categories) if categories else 'N/A'}")
+            print(f"     Labels: {', '.join(labels) if labels else 'N/A'}")
+            print(f"     Text: {result.get('search_string', '')}")
+            print()
     
     if results['word_search']['results']:
-        print("\nTop word-based search results:")
-        for i, result in enumerate(results['word_search']['results'][:3]):
+        print("\nTop 10 word-based search results:")
+        for i, result in enumerate(results['word_search']['results'][:10]):
             score = result.get('score', 0)
             product_id = result.get('_id', 'Unknown')
-            search_text = result.get('search_string', '')[:100] + ('...' if len(result.get('search_string', '')) > 100 else '')
+            
+            # Extract unique product names
+            unique_product_names = extract_unique_product_names(result.get('product_name', []))
+            
+            # Get other requested fields
+            quantity = result.get('quantity', '')
+            brands = result.get('brands', '')
+            categories = result.get('categories', [])
+            labels = result.get('labels', [])
+            
             print(f"  {i+1}. Score: {score:.2f} - ID: {product_id}")
-            print(f"     Text: {search_text}")
+            print(f"     Product Names: {', '.join(unique_product_names) if unique_product_names else 'N/A'}")
+            print(f"     Quantity: {quantity if quantity else 'N/A'}")
+            print(f"     Brands: {brands if brands else 'N/A'}")
+            print(f"     Categories: {', '.join(categories) if categories else 'N/A'}")
+            print(f"     Labels: {', '.join(labels) if labels else 'N/A'}")
+            print(f"     Text: {result.get('search_string', '')}")
+            print()
 
 
 if __name__ == "__main__":
