@@ -1,4 +1,4 @@
-.PHONY: install run test clean setup-local run-local
+.PHONY: install run search test clean setup-local run-local search-local
 
 install:
 	@echo "Setting up virtual environment..."
@@ -12,16 +12,28 @@ run:
 	@if [ ! -d "venv" ]; then echo "Virtual environment not found. Run 'make install' first."; exit 1; fi
 	-. venv/bin/activate && python3 download_products.py
 
+search:
+	@if [ ! -d "venv" ]; then echo "Virtual environment not found. Run 'make install' first."; exit 1; fi
+	@if [ -z "$(SEARCH_STRING)" ]; then echo "Usage: make search SEARCH_STRING='your search term'"; exit 1; fi
+	. venv/bin/activate && python3 search_products.py "$(SEARCH_STRING)"
+
 setup-local:
 	@echo "🔧 Setting up local environment variables from .env file..."
 	@if [ ! -f .env ]; then echo "❌ .env file not found. Create one with MONGO_URI=your_mongo_uri"; exit 1; fi
 	@echo "✅ Environment variables ready to be loaded from .env"
-	@echo "💡 Use 'make run-local' to run with these environment variables"
+	@echo "💡 Use 'make run-local' to run downloader with these environment variables"
+	@echo "💡 Use 'make search-local SEARCH_STRING=\"your search\"' to run search with these environment variables"
 
 run-local: setup-local
 	@if [ ! -d "venv" ]; then echo "Virtual environment not found. Run 'make install' first."; exit 1; fi
-	@echo "🚀 Running bot with local environment variables..."
+	@echo "🚀 Running downloader with local environment variables..."
 	@export $$(cat .env | grep -v '^#' | xargs) && . venv/bin/activate && python3 download_products.py
+
+search-local: setup-local
+	@if [ ! -d "venv" ]; then echo "Virtual environment not found. Run 'make install' first."; exit 1; fi
+	@if [ -z "$(SEARCH_STRING)" ]; then echo "Usage: make search-local SEARCH_STRING='your search term'"; exit 1; fi
+	@echo "🔍 Running search with local environment variables..."
+	@export $$(cat .env | grep -v '^#' | xargs) && . venv/bin/activate && python3 search_products.py "$(SEARCH_STRING)"
 
 test:
 	# No tests yet

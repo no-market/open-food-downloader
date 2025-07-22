@@ -1,0 +1,100 @@
+name: Search Products Catalog
+
+on:
+  # Allow manual triggering of the workflow with string input
+  workflow_dispatch:
+    inputs:
+      search_string:
+        description: 'Text to search for in the products catalog'
+        required: true
+        default: 'chocolate'
+      description:
+        description: 'Description of the search (optional)'
+        required: false
+        default: 'Manual search of products catalog'
+
+jobs:
+  search-products:
+    name: Search Products in MongoDB Catalog
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          
+    - name: Install dependencies
+      run: make install
+        
+    - name: Search products catalog
+      env:
+        MONGO_URI: ${{ secrets.MONGO_URI }}
+      run: |
+        echo "🔍 Starting product search..."
+        echo "Search string: '${{ github.event.inputs.search_string }}'"
+        echo "Description: ${{ github.event.inputs.description }}"
+        echo ""
+        
+        # Activate virtual environment and run search
+        source venv/bin/activate
+        python3 search_products.py "${{ github.event.inputs.search_string }}"
+        
+        echo "✅ Product search completed!"
+        
+    - name: List output files
+      run: |
+        echo "Generated files:"
+        ls -la search_results_*.json || echo "No search result files found"
+        
+    - name: Upload search results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: product-search-results
+        path: |
+          search_results_*.json
+        retention-days: 30
+        
+    - name: Upload search summary
+      if: always()
+      run: |
+        echo "## 🔍 Product Search Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Search String**: \`${{ github.event.inputs.search_string }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "**Description**: ${{ github.event.inputs.description }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Results:" >> $GITHUB_STEP_SUMMARY
+        
+        # Check if search results file exists and show summary
+        if [ -f search_results_*.json ]; then
+          RESULT_FILE=$(ls search_results_*.json | head -1)
+          echo "✅ **Status**: Search completed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "📁 **Results File**: \`$RESULT_FILE\`" >> $GITHUB_STEP_SUMMARY
+          echo "📊 **Artifacts**: Search results uploaded as 'product-search-results'" >> $GITHUB_STEP_SUMMARY
+          
+          # Try to extract counts from the JSON file
+          if command -v jq > /dev/null; then
+            DIRECT_COUNT=$(jq -r '.direct_search.count // 0' "$RESULT_FILE" 2>/dev/null || echo "0")
+            WORD_COUNT=$(jq -r '.word_search.count // 0' "$RESULT_FILE" 2>/dev/null || echo "0")
+            echo "  - **Direct Search Results**: $DIRECT_COUNT products found" >> $GITHUB_STEP_SUMMARY
+            echo "  - **Word-based Search Results**: $WORD_COUNT products found" >> $GITHUB_STEP_SUMMARY
+          fi
+        else
+          echo "❌ **Status**: Search failed - no results file generated" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "⏰ **Timestamp**: $(date -u)" >> $GITHUB_STEP_SUMMARY
+        echo "🔗 **Repository**: ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
