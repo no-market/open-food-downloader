@@ -97,7 +97,7 @@ def download_from_huggingface():
                 search_components.append(labels)
             
             # Create space-separated search string (lowercase)
-            search_string = ' '.join(search_components).lower()
+            search_string = ' '.join(search_components).lower().replace(',', ' ')
 
             product = {
                 '_id': record.get('code'),
@@ -141,7 +141,8 @@ def download_from_huggingface():
             lang = record.get('lang', "None_LANG_ATTRIBUTE")
             langs_map[lang] = langs_map.get(lang, 0) + 1
 
-            print(f"Record {i + 1}: {lang} - Stored in MongoDB")
+            print(f"Record {i + 1}: {product.get('_id')} - Stored in MongoDB")
+            
 
         print("Language distribution:")
         for lang, count in langs_map.items():
