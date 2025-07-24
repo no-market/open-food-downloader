@@ -18,47 +18,8 @@ import re
 from datetime import datetime
 from typing import Dict, Any, List
 
+from utils import format_search_string
 
-def format_search_string(input_string: str) -> str:
-    """
-    Format search string according to requirements:
-    - Split camelCase format words  
-    - Split numbers from letters
-    - Remove "," and ";"
-    - Convert to lowercase
-    - Keep space " " as separator
-    
-    Args:
-        input_string: The input search string
-        
-    Returns:
-        Formatted search string
-    """
-    if not input_string:
-        return ""
-    
-    # Step 1: Replace commas and semicolons with spaces first
-    formatted = re.sub(r'[,;]', ' ', input_string)
-    
-    # Step 2: Split camelCase - handle both regular camelCase and consecutive uppercase letters
-    # Split on lowercase letter followed by uppercase letter
-    formatted = re.sub(r'([a-ząćęłńóśźż])([A-ZĄĆĘŁŃÓŚŹŻ])', r'\1 \2', formatted)
-    # Split consecutive uppercase letters when followed by lowercase letter (e.g., XMLHttp -> XML Http)
-    formatted = re.sub(r'([A-ZĄĆĘŁŃÓŚŹŻ])([A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż])', r'\1 \2', formatted)
-    
-    # Step 3: Split numbers from letters - insert space between letters and numbers
-    # Insert space before numbers that follow letters (including Unicode letters)
-    formatted = re.sub(r'([a-zA-ZąćęłńóśźżĄĆĘŁŃÓŚŹŻ])(\d)', r'\1 \2', formatted)
-    # Insert space after numbers that are followed by letters  
-    formatted = re.sub(r'(\d)([a-zA-ZąćęłńóśźżĄĆĘŁŃÓŚŹŻ])', r'\1 \2', formatted)
-    
-    # Step 4: Convert to lowercase
-    formatted = formatted.lower()
-    
-    # Step 5: Normalize spaces - replace multiple spaces with single space and strip
-    formatted = re.sub(r'\s+', ' ', formatted).strip()
-    
-    return formatted
 
 
 def search_products_direct(collection, search_string: str, formatted_string: str) -> List[Dict[str, Any]]:

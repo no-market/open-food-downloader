@@ -36,8 +36,8 @@ search-local: setup-local
 	@export $$(cat .env | grep -v '^#' | xargs) && . venv/bin/activate && python3 search_products.py "$(SEARCH_STRING)"
 
 test:
-	# No tests yet
-	echo "No tests yet"
+	@echo "🧪 Running tests with pytest..."
+	/usr/bin/python3 -m pytest test_utils.py -v --tb=short
 
 clean:
 	@echo "Removing virtual environment..."
