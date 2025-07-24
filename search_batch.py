@@ -18,6 +18,104 @@ from typing import Dict, Any, List, Optional, Tuple
 from search_products import search_products
 
 
+def display_csv_as_table(csv_file_path: str, max_rows: int = 20, max_col_width: int = 30) -> bool:
+    """
+    Display CSV file content in a nice table format.
+    
+    Args:
+        csv_file_path: Path to the CSV file
+        max_rows: Maximum number of rows to display (excluding header)
+        max_col_width: Maximum width for each column
+        
+    Returns:
+        True if successfully displayed, False otherwise
+    """
+    try:
+        if not os.path.exists(csv_file_path):
+            print(f"❌ CSV file not found: {csv_file_path}")
+            return False
+        
+        with open(csv_file_path, 'r', encoding='utf-8') as csvfile:
+            reader = csv.reader(csvfile)
+            rows = list(reader)
+        
+        if not rows:
+            print("❌ CSV file is empty")
+            return False
+        
+        headers = rows[0]
+        data_rows = rows[1:]
+        
+        # Calculate column widths
+        col_widths = []
+        for i, header in enumerate(headers):
+            max_width = len(header)
+            for row in data_rows[:max_rows]:  # Only consider displayed rows
+                if i < len(row):
+                    content = str(row[i])
+                    max_width = max(max_width, len(content))
+            col_widths.append(min(max_width, max_col_width))
+        
+        # Helper function to truncate and pad text
+        def format_cell(text: str, width: int) -> str:
+            text = str(text)
+            if len(text) > width:
+                return text[:width-3] + "..."
+            return text.ljust(width)
+        
+        # Display table
+        print(f"\n📊 Batch Search Results (showing {min(len(data_rows), max_rows)}/{len(data_rows)} rows):")
+        print("=" * (sum(col_widths) + len(headers) * 3 + 1))
+        
+        # Header row
+        header_line = "│"
+        for i, header in enumerate(headers):
+            header_line += f" {format_cell(header, col_widths[i])} │"
+        print(header_line)
+        
+        # Separator line
+        sep_line = "├"
+        for i, width in enumerate(col_widths):
+            sep_line += "─" * (width + 2)
+            if i < len(col_widths) - 1:
+                sep_line += "┼"
+            else:
+                sep_line += "┤"
+        print(sep_line)
+        
+        # Data rows
+        displayed_rows = 0
+        for row in data_rows:
+            if displayed_rows >= max_rows:
+                break
+            
+            row_line = "│"
+            for i, col_width in enumerate(col_widths):
+                cell_content = row[i] if i < len(row) else ""
+                row_line += f" {format_cell(cell_content, col_width)} │"
+            print(row_line)
+            displayed_rows += 1
+        
+        # Bottom border
+        bottom_line = "└"
+        for i, width in enumerate(col_widths):
+            bottom_line += "─" * (width + 2)
+            if i < len(col_widths) - 1:
+                bottom_line += "┴"
+            else:
+                bottom_line += "┘"
+        print(bottom_line)
+        
+        if len(data_rows) > max_rows:
+            print(f"... and {len(data_rows) - max_rows} more rows (showing first {max_rows})")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error displaying CSV table: {e}")
+        return False
+
+
 def read_batch_file(batch_file: str) -> List[str]:
     """
     Read product names from batch file.
@@ -168,6 +266,9 @@ def search_batch_products(batch_file: str = "batch.txt", output_file: str = None
         print(f"📁 Results saved to: {output_file}")
         print(f"📊 Total rows: {len(csv_rows)} (including headers)")
         print(f"🔍 Products processed: {len(product_names)}")
+        
+        # Display the results in a nice table format
+        display_csv_as_table(output_file, max_rows=20, max_col_width=25)
         
         return output_file
         
