@@ -19,3 +19,5 @@ unique_categories.json
 
 # Search results
 search_results_*.json
+demo_search_results.json
+test_demo_search_results.json
