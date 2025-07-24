@@ -24,10 +24,19 @@ def test_display_csv_as_table_basic():
         temp_file = f.name
     
     try:
+        # Temporarily unset GITHUB_STEP_SUMMARY to test console output
+        original_github_env = os.environ.get('GITHUB_STEP_SUMMARY')
+        if 'GITHUB_STEP_SUMMARY' in os.environ:
+            del os.environ['GITHUB_STEP_SUMMARY']
+        
         # Capture output
         output = StringIO()
         with redirect_stdout(output):
             result = display_csv_as_table(temp_file, max_rows=10, max_col_width=25)
+        
+        # Restore environment variable
+        if original_github_env is not None:
+            os.environ['GITHUB_STEP_SUMMARY'] = original_github_env
         
         # Check return value
         assert result == True, "Function should return True for successful display"
@@ -101,10 +110,19 @@ def test_display_csv_as_table_truncation():
         temp_file = f.name
     
     try:
+        # Temporarily unset GITHUB_STEP_SUMMARY to test console output
+        original_github_env = os.environ.get('GITHUB_STEP_SUMMARY')
+        if 'GITHUB_STEP_SUMMARY' in os.environ:
+            del os.environ['GITHUB_STEP_SUMMARY']
+        
         # Capture output
         output = StringIO()
         with redirect_stdout(output):
             result = display_csv_as_table(temp_file, max_rows=10, max_col_width=20)
+        
+        # Restore environment variable
+        if original_github_env is not None:
+            os.environ['GITHUB_STEP_SUMMARY'] = original_github_env
         
         # Check return value
         assert result == True, "Function should return True for successful display"
@@ -129,10 +147,19 @@ def test_display_csv_as_table_row_limit():
         temp_file = f.name
     
     try:
+        # Temporarily unset GITHUB_STEP_SUMMARY to test console output
+        original_github_env = os.environ.get('GITHUB_STEP_SUMMARY')
+        if 'GITHUB_STEP_SUMMARY' in os.environ:
+            del os.environ['GITHUB_STEP_SUMMARY']
+        
         # Capture output
         output = StringIO()
         with redirect_stdout(output):
             result = display_csv_as_table(temp_file, max_rows=5, max_col_width=25)
+        
+        # Restore environment variable
+        if original_github_env is not None:
+            os.environ['GITHUB_STEP_SUMMARY'] = original_github_env
         
         # Check return value
         assert result == True, "Function should return True for successful display"
@@ -158,10 +185,19 @@ def test_display_csv_as_table_polish_characters():
         temp_file = f.name
     
     try:
+        # Temporarily unset GITHUB_STEP_SUMMARY to test console output
+        original_github_env = os.environ.get('GITHUB_STEP_SUMMARY')
+        if 'GITHUB_STEP_SUMMARY' in os.environ:
+            del os.environ['GITHUB_STEP_SUMMARY']
+        
         # Capture output
         output = StringIO()
         with redirect_stdout(output):
             result = display_csv_as_table(temp_file, max_rows=10, max_col_width=25)
+        
+        # Restore environment variable
+        if original_github_env is not None:
+            os.environ['GITHUB_STEP_SUMMARY'] = original_github_env
         
         # Check return value
         assert result == True, "Function should return True for successful display"

@@ -21,6 +21,8 @@ from search_products import search_products
 def display_csv_as_table(csv_file_path: str, max_rows: int = 20, max_col_width: int = 30) -> bool:
     """
     Display CSV file content in a nice table format.
+    For GitHub Actions, writes markdown table to GITHUB_STEP_SUMMARY.
+    For console, displays Unicode table format.
     
     Args:
         csv_file_path: Path to the CSV file
@@ -46,6 +48,98 @@ def display_csv_as_table(csv_file_path: str, max_rows: int = 20, max_col_width: 
         headers = rows[0]
         data_rows = rows[1:]
         
+        # Check if running in GitHub Actions
+        github_step_summary = os.environ.get('GITHUB_STEP_SUMMARY')
+        is_github_actions = github_step_summary is not None
+        
+        if is_github_actions:
+            # Display markdown table for GitHub Actions
+            return _display_markdown_table(github_step_summary, csv_file_path, headers, data_rows, max_rows, max_col_width)
+        else:
+            # Display Unicode table for console
+            return _display_console_table(headers, data_rows, max_rows, max_col_width)
+        
+    except Exception as e:
+        print(f"❌ Error displaying CSV table: {e}")
+        return False
+
+
+def _display_markdown_table(github_step_summary: str, csv_file_path: str, headers: List[str], data_rows: List[List[str]], max_rows: int, max_col_width: int) -> bool:
+    """
+    Display CSV content as markdown table in GitHub Actions step summary.
+    
+    Args:
+        github_step_summary: Path to GITHUB_STEP_SUMMARY file
+        csv_file_path: Path to CSV file (for filename display)
+        headers: CSV headers
+        data_rows: CSV data rows
+        max_rows: Maximum rows to display
+        max_col_width: Maximum column width
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        with open(github_step_summary, 'a', encoding='utf-8') as f:
+            # Add table section header
+            f.write("\n### 📊 Search Results Table\n\n")
+            f.write(f"Showing {min(len(data_rows), max_rows)}/{len(data_rows)} rows from `{os.path.basename(csv_file_path)}`:\n\n")
+            
+            # Helper function to truncate text for markdown
+            def format_cell_md(text: str) -> str:
+                text = str(text).strip()
+                if len(text) > max_col_width:
+                    return text[:max_col_width-3] + "..."
+                return text
+            
+            # Create markdown table header
+            header_line = "| " + " | ".join([format_cell_md(header) for header in headers]) + " |"
+            f.write(header_line + "\n")
+            
+            # Create separator line
+            separator = "| " + " | ".join(["---" for _ in headers]) + " |"
+            f.write(separator + "\n")
+            
+            # Add data rows
+            displayed_rows = 0
+            for row in data_rows:
+                if displayed_rows >= max_rows:
+                    break
+                
+                # Ensure row has same number of columns as headers
+                padded_row = row + [""] * (len(headers) - len(row))
+                row_line = "| " + " | ".join([format_cell_md(cell) for cell in padded_row[:len(headers)]]) + " |"
+                f.write(row_line + "\n")
+                displayed_rows += 1
+            
+            # Add note about remaining rows
+            if len(data_rows) > max_rows:
+                f.write(f"\n*... and {len(data_rows) - max_rows} more rows (showing first {max_rows})*\n")
+            
+            f.write("\n")
+        
+        print(f"📊 Table with {min(len(data_rows), max_rows)}/{len(data_rows)} rows added to GitHub job summary")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error writing markdown table to GitHub summary: {e}")
+        return False
+
+
+def _display_console_table(headers: List[str], data_rows: List[List[str]], max_rows: int, max_col_width: int) -> bool:
+    """
+    Display CSV content as Unicode table in console.
+    
+    Args:
+        headers: CSV headers
+        data_rows: CSV data rows
+        max_rows: Maximum rows to display
+        max_col_width: Maximum column width
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
         # Calculate column widths
         col_widths = []
         for i, header in enumerate(headers):
@@ -112,7 +206,7 @@ def display_csv_as_table(csv_file_path: str, max_rows: int = 20, max_col_width: 
         return True
         
     except Exception as e:
-        print(f"❌ Error displaying CSV table: {e}")
+        print(f"❌ Error displaying console table: {e}")
         return False
 
 
