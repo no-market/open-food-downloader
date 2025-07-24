@@ -18,7 +18,7 @@ from typing import Dict, Any, List, Optional, Tuple
 from search_products import search_products
 
 
-def display_csv_as_table(csv_file_path: str, max_rows: int = 20, max_col_width: int = 30) -> bool:
+def display_csv_as_table(csv_file_path: str, max_rows: int = 100, max_col_width: int = 30) -> bool:
     """
     Display CSV file content in a nice table format.
     For GitHub Actions, writes markdown table to GITHUB_STEP_SUMMARY.
@@ -362,7 +362,7 @@ def search_batch_products(batch_file: str = "batch.txt", output_file: str = None
         print(f"🔍 Products processed: {len(product_names)}")
         
         # Display the results in a nice table format
-        display_csv_as_table(output_file, max_rows=20, max_col_width=25)
+        display_csv_as_table(output_file, max_col_width=25)
         
         return output_file
         
