@@ -1,5 +1,4 @@
 OK:
-
 make search-local SEARCH_STRING="chleb 500 g"
 make search-local SEARCH_STRING="torba t-shirt"
 make search-local SEARCH_STRING="lody salte"
@@ -16,21 +15,16 @@ make search-local SEARCH_STRING="kalafior luz"
 
 
 Not OK:
-
 make search-local SEARCH_STRING="arbuz luz"
 make search-local SEARCH_STRING="łos rodz por kg"
 make search-local SEARCH_STRING="torba t-shirt"
 make search-local SEARCH_STRING=arbuz
 make search-local SEARCH_STRING="ziemniaki w"
 make search-local SEARCH_STRING="czereśnie luz"
-
 make search-local SEARCH_STRING="KapPekMłoda luz"
-make search-local SEARCH_STRING="BorówkaAameryk 500g"
+make search-local SEARCH_STRING="BorówkaAmeryk 500g"
 make search-local SEARCH_STRING="borówka ameryk 500g"
-
-
 make search-local SEARCH_STRING="śmiet18 piątnica400g"
-
 make search-local SEARCH_STRING="śmiet 18 piątnica 400 g"
 
 
