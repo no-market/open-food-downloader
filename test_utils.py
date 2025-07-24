@@ -5,7 +5,7 @@ Tests the format_search_string function with various input cases.
 """
 
 import pytest
-from utils import format_search_string, is_inflection_available
+from utils import format_search_string
 
 
 class TestFormatSearchString:
@@ -75,7 +75,7 @@ class TestFormatSearchString:
         ("API,2.0;Version", "api 2.0 version"),
         
         # Unicode edge cases
-        ("ąćęłńóśźżĄĆĘŁŃÓŚŹŻ", "ąćęłńóśźż ąćęłńóś źż"),  # Updated expectation
+        ("ąćęłńóśźżĄĆĘŁŃÓŚŹŻ", "ąćęłńóśźż ąćęłńóśźż"),  # Updated expectation for regex-only approach
         ("PolishChars123Test", "polish chars 123 test"),
     ])
     def test_format_search_string_parametrized(self, input_string, expected_output):
@@ -137,45 +137,6 @@ class TestFormatSearchString:
         for input_str, expected in test_cases:
             result = format_search_string(input_str)
             assert result == expected
-
-
-class TestUtilityFunctions:
-    """Test class for other utility functions."""
-    
-    def test_is_inflection_available(self):
-        """Test that is_inflection_available returns a boolean."""
-        result = is_inflection_available()
-        assert isinstance(result, bool)
-        
-        # If we have inflection installed, it should return True
-        try:
-            import inflection
-            assert result is True
-        except ImportError:
-            assert result is False
-
-
-class TestInflectionIntegration:
-    """Test class for inflection library integration."""
-    
-    def test_inflection_library_functionality(self):
-        """Test that inflection library works as expected if available."""
-        if is_inflection_available():
-            # Test that our function benefits from inflection library
-            test_cases = [
-                ("XMLHttpRequest", "xml http request"),
-                ("HTTPSConnection", "https connection"),
-                ("iPhoneCamera", "i phone camera"),
-            ]
-            
-            for input_str, expected in test_cases:
-                result = format_search_string(input_str)
-                assert result == expected
-        else:
-            # If inflection is not available, test that fallback works
-            result = format_search_string("XMLHttpRequest")
-            assert isinstance(result, str)
-            assert len(result) > 0
 
 
 if __name__ == "__main__":
