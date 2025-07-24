@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 """
 Script to search existing products catalog in MongoDB by text search on search_string field.
-Supports both direct search and word-by-word search with special character removal.
+Performs direct search with improved input string formatting:
+- Splits camelCase format words
+- Splits numbers from letters  
+- Removes commas and semicolons
+- Converts to lowercase
+- Keeps spaces as separators
 Results are stored in output file with input and scores.
 """
 
@@ -11,33 +16,59 @@ import sys
 import argparse
 import re
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import Dict, Any, List
 
 
-def clean_search_words(input_string: str) -> List[str]:
+def format_search_string(input_string: str) -> str:
     """
-    Remove special characters from input string and return list of words.
+    Format search string according to requirements:
+    - Split camelCase format words  
+    - Split numbers from letters
+    - Remove "," and ";"
+    - Convert to lowercase
+    - Keep space " " as separator
     
     Args:
         input_string: The input search string
         
     Returns:
-        List of cleaned words (lowercase, no special chars)
+        Formatted search string
     """
-    # Remove special characters, keep only letters, numbers, and spaces
-    cleaned = re.sub(r'[^\w\s]', ' ', input_string)
-    # Split into words and filter out empty strings
-    words = [word.lower().strip() for word in cleaned.split() if word.strip()]
-    return words
+    if not input_string:
+        return ""
+    
+    # Step 1: Replace commas and semicolons with spaces first
+    formatted = re.sub(r'[,;]', ' ', input_string)
+    
+    # Step 2: Split camelCase - handle both regular camelCase and consecutive uppercase letters
+    # Split on lowercase letter followed by uppercase letter
+    formatted = re.sub(r'([a-ząćęłńóśźż])([A-ZĄĆĘŁŃÓŚŹŻ])', r'\1 \2', formatted)
+    # Split consecutive uppercase letters when followed by lowercase letter (e.g., XMLHttp -> XML Http)
+    formatted = re.sub(r'([A-ZĄĆĘŁŃÓŚŹŻ])([A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż])', r'\1 \2', formatted)
+    
+    # Step 3: Split numbers from letters - insert space between letters and numbers
+    # Insert space before numbers that follow letters (including Unicode letters)
+    formatted = re.sub(r'([a-zA-ZąćęłńóśźżĄĆĘŁŃÓŚŹŻ])(\d)', r'\1 \2', formatted)
+    # Insert space after numbers that are followed by letters  
+    formatted = re.sub(r'(\d)([a-zA-ZąćęłńóśźżĄĆĘŁŃÓŚŹŻ])', r'\1 \2', formatted)
+    
+    # Step 4: Convert to lowercase
+    formatted = formatted.lower()
+    
+    # Step 5: Normalize spaces - replace multiple spaces with single space and strip
+    formatted = re.sub(r'\s+', ' ', formatted).strip()
+    
+    return formatted
 
 
-def search_products_direct(collection, search_string: str) -> List[Dict[str, Any]]:
+def search_products_direct(collection, search_string: str, formatted_string: str) -> List[Dict[str, Any]]:
     """
-    Search products using direct text search on the full input string.
+    Search products using direct text search on the formatted input string.
     
     Args:
         collection: MongoDB collection object
-        search_string: The search string to look for
+        search_string: The original search string
+        formatted_string: The formatted search string to use for search
         
     Returns:
         List of matching products with scores
@@ -50,9 +81,9 @@ def search_products_direct(collection, search_string: str) -> List[Dict[str, Any
         except Exception:
             pass  # Index might already exist
         
-        # Perform text search with scoring
+        # Perform text search with scoring using the formatted string
         results = list(collection.find(
-            {"$text": {"$search": search_string}},
+            {"$text": {"$search": formatted_string}},
             {"score": {"$meta": "textScore"}}
         ).sort([("score", {"$meta": "textScore"})]).limit(50))
         
@@ -62,39 +93,10 @@ def search_products_direct(collection, search_string: str) -> List[Dict[str, Any
         return []
 
 
-def search_products_by_words(collection, search_words: List[str]) -> List[Dict[str, Any]]:
-    """
-    Search products using individual words from the input string.
-    
-    Args:
-        collection: MongoDB collection object
-        search_words: List of individual words to search for
-        
-    Returns:
-        List of matching products with scores
-    """
-    try:
-        if not search_words:
-            return []
-            
-        # Create combined search string for MongoDB text search
-        words_query = " ".join(search_words)
-        
-        # Use MongoDB text search with scoring
-        results = list(collection.find(
-            {"$text": {"$search": words_query}},
-            {"score": {"$meta": "textScore"}}
-        ).sort([("score", {"$meta": "textScore"})]).limit(50))
-        
-        return results
-    except Exception as e:
-        print(f"Error in word-based search: {e}")
-        return []
-
 
 def search_products(search_string: str) -> Dict[str, Any]:
     """
-    Main search function that performs both direct and word-based searches.
+    Main search function that performs only direct search with formatted input.
     
     Args:
         search_string: The input search string
@@ -126,30 +128,23 @@ def search_products(search_string: str) -> Dict[str, Any]:
             print(f"Error connecting to MongoDB: {e}")
             return {"error": f"MongoDB connection failed: {e}"}
         
-        # Perform searches
-        print(f"Searching for: '{search_string}'")
+        # Format the search string
+        formatted_string = format_search_string(search_string)
+        print(f"Original input: '{search_string}'")
+        print(f"Formatted input: '{formatted_string}'")
         
-        # 1. Direct search
-        print("Performing direct search...")
-        direct_results = search_products_direct(collection, search_string)
-        
-        # 2. Word-based search
-        search_words = clean_search_words(search_string)
-        print(f"Performing word-based search with words: {search_words}")
-        word_results = search_products_by_words(collection, search_words)
+        # Perform direct search with formatted string
+        print("Performing direct search with formatted input...")
+        direct_results = search_products_direct(collection, search_string, formatted_string)
         
         # Prepare results
         results = {
             "timestamp": datetime.now().isoformat(),
             "input_string": search_string,
-            "search_words": search_words,
+            "formatted_string": formatted_string,
             "direct_search": {
                 "count": len(direct_results),
                 "results": direct_results
-            },
-            "word_search": {
-                "count": len(word_results),
-                "results": word_results
             }
         }
         
@@ -157,7 +152,6 @@ def search_products(search_string: str) -> Dict[str, Any]:
         client.close()
         
         print(f"Direct search found {len(direct_results)} results")
-        print(f"Word-based search found {len(word_results)} results")
         
         return results
         
@@ -253,38 +247,14 @@ def main():
     
     # Print summary
     print("\nSearch Summary:")
+    print(f"- Formatted input: '{results['formatted_string']}'")
     print(f"- Direct search: {results['direct_search']['count']} results")
-    print(f"- Word search: {results['word_search']['count']} results")
     print(f"- Results saved to: {output_file}")
     
-    # Print top results
+    # Print top 10 direct search results
     if results['direct_search']['results']:
         print("\nTop 10 direct search results:")
         for i, result in enumerate(results['direct_search']['results'][:10]):
-            score = result.get('score', 0)
-            product_id = result.get('_id', 'Unknown')
-            
-            # Extract unique product names
-            unique_product_names = extract_unique_product_names(result.get('product_name', []))
-            
-            # Get other requested fields
-            quantity = result.get('quantity', '')
-            brands = result.get('brands', '')
-            categories = result.get('categories', [])
-            labels = result.get('labels', [])
-            
-            print(f"  {i+1}. Score: {score:.2f} - ID: {product_id}")
-            print(f"     Product Names: {', '.join(unique_product_names) if unique_product_names else 'N/A'}")
-            print(f"     Quantity: {quantity if quantity else 'N/A'}")
-            print(f"     Brands: {brands if brands else 'N/A'}")
-            print(f"     Categories: {', '.join(categories) if categories else 'N/A'}")
-            print(f"     Labels: {', '.join(labels) if labels else 'N/A'}")
-            print(f"     Text: {result.get('search_string', '')}")
-            print()
-    
-    if results['word_search']['results']:
-        print("\nTop 10 word-based search results:")
-        for i, result in enumerate(results['word_search']['results'][:10]):
             score = result.get('score', 0)
             product_id = result.get('_id', 'Unknown')
             

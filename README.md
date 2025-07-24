@@ -13,11 +13,14 @@ A Python project to download and search food product records from the OpenFoodFa
 
 ### Product Search
 - Search existing products catalog by text search on search_string field
-- Two search strategies:
-  - Direct search: searches the full input string as-is
-  - Word-based search: removes special characters and searches individual words
+- Improved direct search with advanced input string formatting:
+  - Splits camelCase format words (e.g., "BorówkaAmeryk" → "Borówka Ameryk")
+  - Splits numbers from letters (e.g., "500g" → "500 g")
+  - Removes commas and semicolons 
+  - Converts to lowercase
+  - Keeps spaces as separators
 - Results include relevance scores from MongoDB's text search
-- Output saved to JSON files with timestamps
+- Output saved to JSON files with timestamps and formatted input
 - Command-line interface with flexible arguments
 - GitHub Actions workflow for manual search triggers
 
@@ -132,14 +135,10 @@ Search results are saved as JSON files with the following structure:
 ```json
 {
   "timestamp": "2024-01-01T12:00:00",
-  "input_string": "chocolate cookies",
-  "search_words": ["chocolate", "cookies"],
+  "input_string": "BorówkaAmeryk500g",
+  "formatted_string": "borówka ameryk 500 g", 
   "direct_search": {
     "count": 15,
-    "results": [...]
-  },
-  "word_search": {
-    "count": 23,
     "results": [...]
   }
 }
