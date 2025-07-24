@@ -18,7 +18,7 @@ import re
 from datetime import datetime
 from typing import Dict, Any, List
 
-from utils import format_search_string, compute_rapidfuzz_score, extract_product_names, add_given_name_to_results
+from utils import format_search_string, compute_rapidfuzz_score, extract_product_names, compute_given_name
 
 
 
@@ -124,16 +124,16 @@ def search_products(search_string: str) -> Dict[str, Any]:
         direct_results = search_products_direct(collection, search_string, formatted_string)
         
         # Add given_name field to direct results
-        print("Adding given_name field to direct search results...")
-        direct_results = add_given_name_to_results(direct_results)
+        for result in direct_results:
+            result['given_name'] = compute_given_name(result)
         
         # Apply RapidFuzz scoring to the results
         print("Computing RapidFuzz scores and resorting results...")
         direct_results_with_rapidfuzz = apply_rapidfuzz_scoring(search_string, direct_results.copy())
         
-        # Add given_name field to rapidfuzz results (in case apply_rapidfuzz_scoring doesn't preserve it)
-        print("Adding given_name field to RapidFuzz search results...")
-        direct_results_with_rapidfuzz = add_given_name_to_results(direct_results_with_rapidfuzz)
+        # Add given_name field to rapidfuzz results 
+        for result in direct_results_with_rapidfuzz:
+            result['given_name'] = compute_given_name(result)
         
         # Prepare results
         results = {

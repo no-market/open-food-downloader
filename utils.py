@@ -252,21 +252,6 @@ def score_quantity(search_string: str, quantity: str) -> float:
     return max(partial_score, token_score)
 
 
-def add_given_name_to_results(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """
-    Add given_name field to each result in the list.
-    
-    Args:
-        results: List of search result documents
-        
-    Returns:
-        List of results with given_name field added
-    """
-    for result in results:
-        result['given_name'] = compute_given_name(result)
-    return results
-
-
 def compute_given_name(document: Dict[str, Any]) -> str:
     """
     Compute the given_name field based on categories and product_names.
