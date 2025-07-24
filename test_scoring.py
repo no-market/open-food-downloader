@@ -103,6 +103,34 @@ class TestScoringFunctions:
         # Hazelnut appears later in the list, so should get higher weighted score
         assert score_specific >= score_general
     
+    def test_score_categories_list_input(self):
+        """Test category scoring with list input (new format from MongoDB)."""
+        # Test with list format (as returned by MongoDB)
+        categories_list = ["Food", "Spreads", "Chocolate Spreads", "Hazelnut Chocolate Spreads"]
+        categories_tags = ["en:food", "en:spreads", "en:chocolate-spreads"]
+        
+        # Should match categories from list
+        score = score_categories("chocolate", categories_list, categories_tags)
+        assert score > 50
+        
+        # Should match tags (with language prefix removal)
+        score = score_categories("spreads", categories_list, categories_tags)
+        assert score > 50
+        
+        # Later categories should get higher weights
+        score_specific = score_categories("hazelnut", categories_list, [])
+        score_general = score_categories("food", categories_list, [])
+        # Hazelnut appears later in the list, so should get higher weighted score
+        assert score_specific >= score_general
+        
+        # Empty list should return 0
+        assert score_categories("test", [], []) == 0.0
+        
+        # List with empty strings should be filtered out
+        categories_with_empty = ["Food", "", "Spreads", None]
+        score = score_categories("food", categories_with_empty, [])
+        assert score > 0
+    
     def test_score_labels(self):
         """Test label scoring."""
         labels = "Gluten-free,No palm oil,Organic"
@@ -118,6 +146,31 @@ class TestScoringFunctions:
         # No match
         score = score_labels("dairy", labels)
         assert score < 50  # Adjusted threshold
+    
+    def test_score_labels_list_input(self):
+        """Test label scoring with list input (new format from MongoDB)."""
+        # Test with list format (as returned by MongoDB)
+        labels_list = ["Gluten-free", "No palm oil", "Organic"]
+        
+        # Good match
+        score = score_labels("gluten", labels_list)
+        assert score > 50
+        
+        # Multiple word match
+        score = score_labels("palm oil", labels_list)
+        assert score > 50
+        
+        # No match
+        score = score_labels("dairy", labels_list)
+        assert score < 50
+        
+        # Empty list should return 0
+        assert score_labels("test", []) == 0.0
+        
+        # List with empty strings should be filtered out
+        labels_with_empty = ["Gluten-free", "", "Organic", None]
+        score = score_labels("gluten", labels_with_empty)
+        assert score > 0
     
     def test_score_quantity(self):
         """Test quantity scoring."""
@@ -171,6 +224,36 @@ class TestComputeRapidFuzzScore:
         # Search for "350g" - should score on quantity
         score = compute_rapidfuzz_score("350g", document)
         assert score > 30  # Lower score due to 0.5 weight on quantity
+    
+    def test_compute_rapidfuzz_score_list_format(self):
+        """Test comprehensive scoring with MongoDB list format for categories and labels."""
+        document = {
+            "product_name": [
+                {"lang": "main", "text": "Nutella Hazelnut Spread"},
+                {"lang": "fr", "text": "Pâte à tartiner aux noisettes"}
+            ],
+            "brands": "Ferrero",
+            "categories": ["Spreads", "Sweet Spreads", "Chocolate Spreads", "Hazelnut Chocolate Spreads"],
+            "categories_tags": ["en:spreads", "en:sweet-spreads", "en:chocolate-spreads"],
+            "labels": ["Gluten-free", "No palm oil"],
+            "quantity": "350 g"
+        }
+        
+        # Search for "nutella" - should score high on product name
+        score = compute_rapidfuzz_score("nutella", document)
+        assert score > 200  # High score due to 3.0 weight on product names
+        
+        # Search for "ferrero" - should score high on brand
+        score = compute_rapidfuzz_score("ferrero", document)
+        assert score > 150  # High score due to 2.0 weight on brands
+        
+        # Search for "chocolate" - should score on categories (list format)
+        score = compute_rapidfuzz_score("chocolate", document)
+        assert score > 100  # Moderate score due to 1.5 weight on categories
+        
+        # Search for "gluten" - should score on labels (list format)
+        score = compute_rapidfuzz_score("gluten", document)
+        assert score > 50  # Score from labels with 1.0 weight
     
     def test_compute_rapidfuzz_score_empty_inputs(self):
         """Test with empty inputs."""

@@ -150,13 +150,13 @@ def score_brands(search_string: str, brands: str) -> float:
     return max(partial_score, token_score)
 
 
-def score_categories(search_string: str, categories: str, categories_tags: List[str] = None) -> float:
+def score_categories(search_string: str, categories, categories_tags: List[str] = None) -> float:
     """
     Score categories with specificity weighting (later categories have higher weight).
     
     Args:
         search_string: The search query string
-        categories: Comma-separated categories string
+        categories: Categories as string (comma-separated) or list
         categories_tags: Optional list of category tags
         
     Returns:
@@ -167,9 +167,12 @@ def score_categories(search_string: str, categories: str, categories_tags: List[
     
     scores = []
     
-    # Score the comma-separated categories string
+    # Score the categories (handle both string and list formats)
     if categories:
-        category_list = [cat.strip() for cat in categories.split(',') if cat.strip()]
+        if isinstance(categories, list):
+            category_list = [cat.strip() for cat in categories if cat and cat.strip()]
+        else:
+            category_list = [cat.strip() for cat in categories.split(',') if cat.strip()]
         for i, category in enumerate(category_list):
             # Use both partial_ratio and token_sort_ratio
             partial_score = fuzz.partial_ratio(search_string.lower(), category.lower())
@@ -198,13 +201,13 @@ def score_categories(search_string: str, categories: str, categories_tags: List[
     return min(max(scores) if scores else 0.0, 100.0)
 
 
-def score_labels(search_string: str, labels: str) -> float:
+def score_labels(search_string: str, labels) -> float:
     """
     Score labels using RapidFuzz (optional field).
     
     Args:
         search_string: The search query string
-        labels: Comma-separated labels string
+        labels: Labels as string (comma-separated) or list
         
     Returns:
         Matching score (0-100)
@@ -213,7 +216,12 @@ def score_labels(search_string: str, labels: str) -> float:
         return 0.0
     
     scores = []
-    label_list = [label.strip() for label in labels.split(',') if label.strip()]
+    
+    # Handle both string and list formats
+    if isinstance(labels, list):
+        label_list = [label.strip() for label in labels if label and label.strip()]
+    else:
+        label_list = [label.strip() for label in labels.split(',') if label.strip()]
     
     for label in label_list:
         partial_score = fuzz.partial_ratio(search_string.lower(), label.lower())
