@@ -1,0 +1,113 @@
+name: CI Tests
+
+on:
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - '**.py'
+      - 'requirements.txt'
+      - 'Makefile'
+      - '.github/workflows/ci.yml'
+  push:
+    branches: [ main, master ]
+    paths:
+      - '**.py'
+      - 'requirements.txt'
+      - 'Makefile'
+      - '.github/workflows/ci.yml'
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-${{ matrix.python-version }}-
+          ${{ runner.os }}-pip-
+          
+    - name: Install dependencies
+      run: make install
+        
+    - name: Run tests
+      run: make test
+        
+    - name: Generate test report
+      if: always()
+      run: |
+        echo "## 🧪 Test Results - Python ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Run tests again with more detailed output for the summary
+        if . venv/bin/activate && python -m pytest test_utils.py -v --tb=short --no-header; then
+          echo "✅ **Status**: All tests passed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **Status**: Some tests failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "🐍 **Python Version**: ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY
+        echo "⏰ **Timestamp**: $(date -u)" >> $GITHUB_STEP_SUMMARY
+        
+  lint:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black isort
+        
+    - name: Run flake8 (linting)
+      continue-on-error: true
+      run: |
+        echo "## 🔍 Code Quality Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if flake8 --select=E9,F63,F7,F82 --show-source --statistics *.py; then
+          echo "✅ **Flake8**: No critical issues found" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️ **Flake8**: Some issues found (non-blocking)" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+    - name: Check code formatting with black
+      continue-on-error: true
+      run: |
+        if black --check --diff *.py; then
+          echo "✅ **Black**: Code formatting is consistent" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️ **Black**: Code formatting could be improved" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+    - name: Check import sorting with isort
+      continue-on-error: true
+      run: |
+        if isort --check-only --diff *.py; then
+          echo "✅ **isort**: Import sorting is correct" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️ **isort**: Import sorting could be improved" >> $GITHUB_STEP_SUMMARY
+        fi

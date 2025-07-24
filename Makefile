@@ -36,8 +36,9 @@ search-local: setup-local
 	@export $$(cat .env | grep -v '^#' | xargs) && . venv/bin/activate && python3 search_products.py "$(SEARCH_STRING)"
 
 test:
-	# No tests yet
-	echo "No tests yet"
+	@if [ ! -d "venv" ]; then echo "Virtual environment not found. Run 'make install' first."; exit 1; fi
+	@echo "🧪 Running tests with pytest..."
+	. venv/bin/activate && python -m pytest test_utils.py -v --tb=short
 
 clean:
 	@echo "Removing virtual environment..."
