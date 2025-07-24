@@ -1,0 +1,36 @@
+OK:
+
+make search-local SEARCH_STRING="chleb 500 g"
+make search-local SEARCH_STRING="torba t-shirt"
+make search-local SEARCH_STRING="lody salte"
+make search-local SEARCH_STRING="lody macar"
+make search-local SEARCH_STRING="ziemniaki"
+make search-local SEARCH_STRING="jaja ścioł"
+make search-local SEARCH_STRING="twarog tłu"
+make search-local SEARCH_STRING="cukier bia"
+make search-local SEARCH_STRING="kawa miel."
+make search-local SEARCH_STRING="kawa zbożo"
+make search-local SEARCH_STRING="wino camden"
+make search-local SEARCH_STRING="kalafior luz"
+
+
+
+Not OK:
+
+make search-local SEARCH_STRING="arbuz luz"
+make search-local SEARCH_STRING="łos rodz por kg"
+make search-local SEARCH_STRING="torba t-shirt"
+make search-local SEARCH_STRING=arbuz
+make search-local SEARCH_STRING="ziemniaki w"
+make search-local SEARCH_STRING="czereśnie luz"
+
+make search-local SEARCH_STRING="kap pek młoda luz"
+make search-local SEARCH_STRING="borówkaameryk 500g"
+make search-local SEARCH_STRING="borówka ameryk 500g"
+
+
+make search-local SEARCH_STRING="śmiet18 piątnica400g"
+
+make search-local SEARCH_STRING="śmiet 18 piątnica 400 g"
+
+
