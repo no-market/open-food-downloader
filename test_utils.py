@@ -5,7 +5,7 @@ Tests the format_search_string function with various input cases.
 """
 
 import pytest
-from utils import format_search_string
+from utils import format_search_string, compute_given_name
 
 
 class TestFormatSearchString:
@@ -137,6 +137,57 @@ class TestFormatSearchString:
         for input_str, expected in test_cases:
             result = format_search_string(input_str)
             assert result == expected
+
+
+class TestComputeGivenName:
+    """Test class for compute_given_name function."""
+    
+    @pytest.mark.parametrize("document,expected_output", [
+        # Test case 1: Last category without colon
+        (
+            {
+                "categories": "Spreads,Sweet Spreads,Chocolate Spreads,Hazelnut Spreads",
+                "product_name": [{"lang": "main", "text": "Test Product"}]
+            },
+            "Hazelnut Spreads"
+        ),
+        # Test case 2: Categories with colons (should skip them)
+        (
+            {
+                "categories": "Spreads,en:chocolate-spreads,fr:pates-a-tartiner,Hazelnut Spreads", 
+                "product_name": [{"lang": "main", "text": "Test Product"}]
+            },
+            "Hazelnut Spreads"
+        ),
+        # Test case 3: All categories have colons (fallback to product_name with main lang)
+        (
+            {
+                "categories": "en:spreads,fr:produits-a-tartiner,en:sweet-spreads",
+                "product_name": [{"lang": "main", "text": "Nutella Spread"}]
+            },
+            "Nutella Spread"
+        ),
+        # Test case 4: No main language (use first product_name)
+        (
+            {
+                "categories": "en:spreads",
+                "product_name": [{"lang": "fr", "text": "Pâte à tartiner"}]
+            },
+            "Pâte à tartiner"
+        ),
+        # Test case 5: No categories and no product_name
+        (
+            {
+                "categories": "",
+                "product_name": []
+            },
+            ""
+        ),
+    ])
+    def test_compute_given_name(self, document, expected_output):
+        """Test compute_given_name with various scenarios."""
+        result = compute_given_name(document)
+        assert result == expected_output
 
 
 if __name__ == "__main__":

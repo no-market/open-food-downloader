@@ -252,6 +252,55 @@ def score_quantity(search_string: str, quantity: str) -> float:
     return max(partial_score, token_score)
 
 
+def compute_given_name(document: Dict[str, Any]) -> str:
+    """
+    Compute the given_name field based on categories and product_names.
+    
+    Rules:
+    1. Take the very last possible element of 'categories' array which is not empty and does not contain ":" char
+    2. If not found, take from product_names: preferably with 'main' lang, if no product_names[0].text, if no - empty
+    
+    Args:
+        document: MongoDB document
+        
+    Returns:
+        The computed given_name string
+    """
+    # Try to get suitable category first
+    categories = document.get('categories', '')
+    if categories:
+        # Handle both string and list formats
+        if isinstance(categories, list):
+            category_list = [cat.strip() for cat in categories if cat and cat.strip()]
+        else:
+            category_list = [cat.strip() for cat in categories.split(',') if cat.strip()]
+        
+        # Search from last to first for category without ":"
+        for category in reversed(category_list):
+            if category and ':' not in category:
+                return category
+    
+    # If no suitable category found, try product_names
+    product_name_data = document.get('product_name', [])
+    if isinstance(product_name_data, list):
+        # First try to find 'main' language
+        for name_obj in product_name_data:
+            if isinstance(name_obj, dict) and name_obj.get('lang') == 'main':
+                text = name_obj.get('text', '')
+                if text:
+                    return text
+        
+        # If no 'main' language found, try first entry
+        for name_obj in product_name_data:
+            if isinstance(name_obj, dict):
+                text = name_obj.get('text', '')
+                if text:
+                    return text
+    
+    # Return empty string if nothing found
+    return ""
+
+
 def compute_rapidfuzz_score(search_string: str, document: Dict[str, Any]) -> float:
     """
     Compute custom relevance score using RapidFuzz for a MongoDB document.
