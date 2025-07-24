@@ -18,7 +18,7 @@ import re
 from datetime import datetime
 from typing import Dict, Any, List
 
-from utils import format_search_string
+from utils import format_search_string, compute_rapidfuzz_score, extract_product_names
 
 
 
@@ -52,6 +52,31 @@ def search_products_direct(collection, search_string: str, formatted_string: str
     except Exception as e:
         print(f"Error in direct search: {e}")
         return []
+
+
+def apply_rapidfuzz_scoring(search_string: str, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Apply RapidFuzz scoring to search results and sort by RapidFuzz score.
+    
+    Args:
+        search_string: The original search string
+        results: List of MongoDB search results
+        
+    Returns:
+        List of results with RapidFuzz scores, sorted by RapidFuzz score descending
+    """
+    if not results:
+        return results
+    
+    # Add RapidFuzz scores to each result
+    for result in results:
+        rapidfuzz_score = compute_rapidfuzz_score(search_string, result)
+        result['rapidfuzz_score'] = rapidfuzz_score
+    
+    # Sort by RapidFuzz score in descending order
+    results.sort(key=lambda x: x.get('rapidfuzz_score', 0), reverse=True)
+    
+    return results
 
 
 
@@ -98,6 +123,10 @@ def search_products(search_string: str) -> Dict[str, Any]:
         print("Performing direct search with formatted input...")
         direct_results = search_products_direct(collection, search_string, formatted_string)
         
+        # Apply RapidFuzz scoring to the results
+        print("Computing RapidFuzz scores and resorting results...")
+        direct_results_with_rapidfuzz = apply_rapidfuzz_scoring(search_string, direct_results.copy())
+        
         # Prepare results
         results = {
             "timestamp": datetime.now().isoformat(),
@@ -106,6 +135,10 @@ def search_products(search_string: str) -> Dict[str, Any]:
             "direct_search": {
                 "count": len(direct_results),
                 "results": direct_results
+            },
+            "rapidfuzz_search": {
+                "count": len(direct_results_with_rapidfuzz),
+                "results": direct_results_with_rapidfuzz
             }
         }
         
@@ -113,6 +146,7 @@ def search_products(search_string: str) -> Dict[str, Any]:
         client.close()
         
         print(f"Direct search found {len(direct_results)} results")
+        print(f"RapidFuzz scoring applied to {len(direct_results_with_rapidfuzz)} results")
         
         return results
         
@@ -125,27 +159,6 @@ def search_products(search_string: str) -> Dict[str, Any]:
         print(error_msg)
         return {"error": error_msg}
 
-
-def extract_unique_product_names(product_name_data) -> List[str]:
-    """
-    Extract unique product names from product_name array.
-    
-    Args:
-        product_name_data: The product_name field from MongoDB document
-        
-    Returns:
-        List of unique product names
-    """
-    unique_product_names = []
-    if isinstance(product_name_data, list):
-        seen_texts = set()
-        for name_obj in product_name_data:
-            if isinstance(name_obj, dict) and 'text' in name_obj:
-                text = name_obj['text']
-                if text and text not in seen_texts:
-                    unique_product_names.append(text)
-                    seen_texts.add(text)
-    return unique_product_names
 
 
 def save_results(results: Dict[str, Any], output_file: str = None) -> str:
@@ -210,17 +223,18 @@ def main():
     print("\nSearch Summary:")
     print(f"- Formatted input: '{results['formatted_string']}'")
     print(f"- Direct search: {results['direct_search']['count']} results")
+    print(f"- RapidFuzz search: {results['rapidfuzz_search']['count']} results")
     print(f"- Results saved to: {output_file}")
     
     # Print top 10 direct search results
     if results['direct_search']['results']:
-        print("\nTop 10 direct search results:")
+        print("\nTop 10 direct search results (MongoDB scoring):")
         for i, result in enumerate(results['direct_search']['results'][:10]):
             score = result.get('score', 0)
             product_id = result.get('_id', 'Unknown')
             
             # Extract unique product names
-            unique_product_names = extract_unique_product_names(result.get('product_name', []))
+            unique_product_names = extract_product_names(result.get('product_name', []))
             
             # Get other requested fields
             quantity = result.get('quantity', '')
@@ -228,7 +242,33 @@ def main():
             categories = result.get('categories', [])
             labels = result.get('labels', [])
             
-            print(f"  {i+1}. Score: {score:.2f} - ID: {product_id}")
+            print(f"  {i+1}. MongoDB Score: {score:.2f} - ID: {product_id}")
+            print(f"     Product Names: {', '.join(unique_product_names) if unique_product_names else 'N/A'}")
+            print(f"     Quantity: {quantity if quantity else 'N/A'}")
+            print(f"     Brands: {brands if brands else 'N/A'}")
+            print(f"     Categories: {', '.join(categories) if categories else 'N/A'}")
+            print(f"     Labels: {', '.join(labels) if labels else 'N/A'}")
+            print(f"     Text: {result.get('search_string', '')}")
+            print()
+    
+    # Print top 10 RapidFuzz results
+    if results['rapidfuzz_search']['results']:
+        print("\nTop 10 RapidFuzz search results (Custom relevance scoring):")
+        for i, result in enumerate(results['rapidfuzz_search']['results'][:10]):
+            mongo_score = result.get('score', 0)
+            rapidfuzz_score = result.get('rapidfuzz_score', 0)
+            product_id = result.get('_id', 'Unknown')
+            
+            # Extract unique product names
+            unique_product_names = extract_product_names(result.get('product_name', []))
+            
+            # Get other requested fields
+            quantity = result.get('quantity', '')
+            brands = result.get('brands', '')
+            categories = result.get('categories', [])
+            labels = result.get('labels', [])
+            
+            print(f"  {i+1}. RapidFuzz Score: {rapidfuzz_score:.2f} (MongoDB: {mongo_score:.2f}) - ID: {product_id}")
             print(f"     Product Names: {', '.join(unique_product_names) if unique_product_names else 'N/A'}")
             print(f"     Quantity: {quantity if quantity else 'N/A'}")
             print(f"     Brands: {brands if brands else 'N/A'}")
