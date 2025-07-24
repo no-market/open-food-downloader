@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """
 Utility functions for the open-food-downloader project.
-Contains string formatting and processing functions.
+Contains string formatting and processing functions and RapidFuzz scoring.
 """
 
 import re
+from typing import Dict, Any, List
+from rapidfuzz import fuzz
 
 
 def format_search_string(input_string: str) -> str:
@@ -77,3 +79,207 @@ def _split_camel_case_regex(text: str) -> str:
     text = re.sub(r'([A-ZĄĆĘŁŃÓŚŹŻ]+)([A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż])', r'\1 \2', text)
     
     return text
+
+
+def extract_product_names(product_name_data: List[Dict[str, str]]) -> List[str]:
+    """
+    Extract unique product names from product_name array.
+    
+    Args:
+        product_name_data: The product_name field from MongoDB document
+        
+    Returns:
+        List of unique product names
+    """
+    unique_product_names = []
+    if isinstance(product_name_data, list):
+        seen_texts = set()
+        for name_obj in product_name_data:
+            if isinstance(name_obj, dict) and 'text' in name_obj:
+                text = name_obj['text']
+                if text and text not in seen_texts:
+                    unique_product_names.append(text)
+                    seen_texts.add(text)
+    return unique_product_names
+
+
+def score_product_names(search_string: str, product_names: List[str]) -> float:
+    """
+    Score product names using RapidFuzz with highest weight.
+    
+    Args:
+        search_string: The search query string
+        product_names: List of product names from the document
+        
+    Returns:
+        Best matching score (0-100)
+    """
+    if not search_string or not product_names:
+        return 0.0
+    
+    best_score = 0.0
+    for name in product_names:
+        if name:
+            # Use both partial_ratio and token_sort_ratio, take the better one
+            partial_score = fuzz.partial_ratio(search_string.lower(), name.lower())
+            token_score = fuzz.token_sort_ratio(search_string.lower(), name.lower())
+            name_score = max(partial_score, token_score)
+            best_score = max(best_score, name_score)
+    
+    return best_score
+
+
+def score_brands(search_string: str, brands: str) -> float:
+    """
+    Score brands using RapidFuzz with medium weight.
+    
+    Args:
+        search_string: The search query string
+        brands: Brands string from the document
+        
+    Returns:
+        Matching score (0-100)
+    """
+    if not search_string or not brands:
+        return 0.0
+    
+    # Use both partial_ratio and token_sort_ratio, take the better one
+    partial_score = fuzz.partial_ratio(search_string.lower(), brands.lower())
+    token_score = fuzz.token_sort_ratio(search_string.lower(), brands.lower())
+    
+    return max(partial_score, token_score)
+
+
+def score_categories(search_string: str, categories: str, categories_tags: List[str] = None) -> float:
+    """
+    Score categories with specificity weighting (later categories have higher weight).
+    
+    Args:
+        search_string: The search query string
+        categories: Comma-separated categories string
+        categories_tags: Optional list of category tags
+        
+    Returns:
+        Weighted category score (0-100)
+    """
+    if not search_string:
+        return 0.0
+    
+    scores = []
+    
+    # Score the comma-separated categories string
+    if categories:
+        category_list = [cat.strip() for cat in categories.split(',') if cat.strip()]
+        for i, category in enumerate(category_list):
+            # Use both partial_ratio and token_sort_ratio
+            partial_score = fuzz.partial_ratio(search_string.lower(), category.lower())
+            token_score = fuzz.token_sort_ratio(search_string.lower(), category.lower())
+            cat_score = max(partial_score, token_score)
+            
+            # Weight by specificity (later categories are more specific)
+            specificity_weight = 1.0 + (i * 0.1)  # Increase weight for later categories
+            weighted_score = cat_score * specificity_weight
+            scores.append(weighted_score)
+    
+    # Score the category tags if available
+    if categories_tags:
+        for tag in categories_tags:
+            if tag:
+                # Remove language prefixes like "en:", "fr:" for better matching
+                clean_tag = re.sub(r'^[a-z]{2}:', '', tag)
+                clean_tag = clean_tag.replace('-', ' ')  # Convert dashes to spaces
+                
+                partial_score = fuzz.partial_ratio(search_string.lower(), clean_tag.lower())
+                token_score = fuzz.token_sort_ratio(search_string.lower(), clean_tag.lower())
+                tag_score = max(partial_score, token_score)
+                scores.append(tag_score)
+    
+    # Return the best score, capped at 100
+    return min(max(scores) if scores else 0.0, 100.0)
+
+
+def score_labels(search_string: str, labels: str) -> float:
+    """
+    Score labels using RapidFuzz (optional field).
+    
+    Args:
+        search_string: The search query string
+        labels: Comma-separated labels string
+        
+    Returns:
+        Matching score (0-100)
+    """
+    if not search_string or not labels:
+        return 0.0
+    
+    scores = []
+    label_list = [label.strip() for label in labels.split(',') if label.strip()]
+    
+    for label in label_list:
+        partial_score = fuzz.partial_ratio(search_string.lower(), label.lower())
+        token_score = fuzz.token_sort_ratio(search_string.lower(), label.lower())
+        scores.append(max(partial_score, token_score))
+    
+    return max(scores) if scores else 0.0
+
+
+def score_quantity(search_string: str, quantity: str) -> float:
+    """
+    Score quantity and unit with low weight.
+    
+    Args:
+        search_string: The search query string
+        quantity: Quantity string like "350 g"
+        
+    Returns:
+        Matching score (0-100)
+    """
+    if not search_string or not quantity:
+        return 0.0
+    
+    # Use both partial_ratio and token_sort_ratio
+    partial_score = fuzz.partial_ratio(search_string.lower(), quantity.lower())
+    token_score = fuzz.token_sort_ratio(search_string.lower(), quantity.lower())
+    
+    return max(partial_score, token_score)
+
+
+def compute_rapidfuzz_score(search_string: str, document: Dict[str, Any]) -> float:
+    """
+    Compute custom relevance score using RapidFuzz for a MongoDB document.
+    
+    Args:
+        search_string: The search query string
+        document: MongoDB document
+        
+    Returns:
+        Combined weighted score
+    """
+    if not search_string:
+        return 0.0
+    
+    # Extract and score product names (weight: 3.0)
+    product_names = extract_product_names(document.get('product_name', []))
+    name_score = score_product_names(search_string, product_names) * 3.0
+    
+    # Score brands (weight: 2.0)
+    brands = document.get('brands', '')
+    brand_score = score_brands(search_string, brands) * 2.0
+    
+    # Score categories with specificity (weight: 1.5)
+    categories = document.get('categories', '')
+    categories_tags = document.get('categories_tags', [])
+    category_score = score_categories(search_string, categories, categories_tags) * 1.5
+    
+    # Score labels (optional, no explicit weight mentioned, using 1.0)
+    labels = document.get('labels', '')
+    label_score = score_labels(search_string, labels) * 1.0
+    
+    # Score quantity (weight: 0.5)
+    quantity = document.get('quantity', '')
+    quantity_score = score_quantity(search_string, quantity) * 0.5
+    
+    # Combine all scores
+    total_score = name_score + brand_score + category_score + label_score + quantity_score
+    
+    return total_score
