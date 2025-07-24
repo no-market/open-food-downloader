@@ -1,0 +1,117 @@
+name: Search Products Batch
+
+on:
+  # Allow manual triggering of the workflow  
+  workflow_dispatch:
+    inputs:
+      batch_file:
+        description: 'Batch file path (relative to repository root)'
+        required: false
+        default: 'batch.txt'
+      description:
+        description: 'Description of the batch search (optional)'
+        required: false
+        default: 'Manual batch search of products catalog'
+
+jobs:
+  search-batch:
+    name: Search Products Batch in MongoDB Catalog
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          
+    - name: Install dependencies
+      run: make install
+        
+    - name: Verify batch file exists
+      run: |
+        BATCH_FILE="${{ github.event.inputs.batch_file }}"
+        if [ ! -f "$BATCH_FILE" ]; then
+          echo "❌ Error: Batch file '$BATCH_FILE' not found"
+          echo "Available files:"
+          ls -la *.txt || echo "No .txt files found"
+          exit 1
+        fi
+        echo "✅ Batch file '$BATCH_FILE' found"
+        echo "📝 Contents preview:"
+        head -5 "$BATCH_FILE"
+        TOTAL_LINES=$(wc -l < "$BATCH_FILE")
+        echo "📊 Total products to search: $TOTAL_LINES"
+        
+    - name: Search products batch
+      env:
+        MONGO_URI: ${{ secrets.MONGO_URI }}
+      run: |
+        echo "🔍 Starting batch product search..."
+        echo "Batch file: '${{ github.event.inputs.batch_file }}'"
+        echo "Description: ${{ github.event.inputs.description }}"
+        echo ""
+        
+        # Activate virtual environment and run batch search
+        source venv/bin/activate
+        python3 search_batch.py -b "${{ github.event.inputs.batch_file }}"
+        
+        echo "✅ Batch product search completed!"
+        
+    - name: List output files
+      run: |
+        echo "Generated files:"
+        ls -la batch_search_results_*.csv || echo "No batch search result files found"
+        
+    - name: Upload batch search results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: batch-search-results
+        path: |
+          batch_search_results_*.csv
+        retention-days: 30
+        
+    - name: Upload batch search summary
+      if: always()
+      run: |
+        echo "## 🔍 Batch Product Search Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Batch File**: \`${{ github.event.inputs.batch_file }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "**Description**: ${{ github.event.inputs.description }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Results:" >> $GITHUB_STEP_SUMMARY
+        
+        # Check if batch search results file exists and show summary
+        if [ -f batch_search_results_*.csv ]; then
+          RESULT_FILE=$(ls batch_search_results_*.csv | head -1)
+          echo "✅ **Status**: Batch search completed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "📁 **Results File**: \`$RESULT_FILE\`" >> $GITHUB_STEP_SUMMARY
+          echo "📊 **Artifacts**: Batch search results uploaded as 'batch-search-results'" >> $GITHUB_STEP_SUMMARY
+          
+          # Show CSV summary
+          if [ -f "$RESULT_FILE" ]; then
+            TOTAL_ROWS=$(wc -l < "$RESULT_FILE")
+            PRODUCT_COUNT=$(( ($TOTAL_ROWS - 1) / 2 ))  # Exclude header, 2 rows per product
+            echo "  - **Total Products Searched**: $PRODUCT_COUNT" >> $GITHUB_STEP_SUMMARY
+            echo "  - **Total Result Rows**: $(($TOTAL_ROWS - 1)) (excluding header)" >> $GITHUB_STEP_SUMMARY
+            echo "  - **Format**: CSV with columns: Number, Input string, Given Name, Score, ID" >> $GITHUB_STEP_SUMMARY
+            echo "  - **Structure**: Each product has 2 rows (N.Mongo, N.Fuzzy)" >> $GITHUB_STEP_SUMMARY
+          fi
+        else
+          echo "❌ **Status**: Batch search failed - no results file generated" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "⏰ **Timestamp**: $(date -u)" >> $GITHUB_STEP_SUMMARY
+        echo "🔗 **Repository**: ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY

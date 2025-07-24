@@ -19,6 +19,7 @@ unique_categories.json
 
 # Search results
 search_results_*.json
+batch_search_results_*.csv
 demo_search_results.json
 test_demo_search_results.json
 example_search_results_with_given_name.json
