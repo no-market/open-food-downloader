@@ -18,7 +18,7 @@ from typing import Dict, Any, List, Optional, Tuple
 from search_products import search_products
 
 
-def display_csv_as_table(csv_file_path: str, max_rows: int = 100, max_col_width: int = 30) -> bool:
+def display_csv_as_table(csv_file_path: str, max_rows: int = 200, max_col_width: int = 30) -> bool:
     """
     Display CSV file content in a nice table format.
     For GitHub Actions, writes markdown table to GITHUB_STEP_SUMMARY.
