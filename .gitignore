@@ -16,6 +16,7 @@ food_groups_hierarchy.json
 unique_food_groups.json
 categories_hierarchy.json
 unique_categories.json
+unique_last_categories.json
 
 # Search results
 search_results_*.json

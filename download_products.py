@@ -52,11 +52,12 @@ def download_from_huggingface():
         
         unique_food_groups = set()  # Collect unique food group tags
         unique_categories = set()  # Collect unique category tags
+        unique_last_categories = set()  # Collect unique last category from each array
         
         # Process records and store directly in MongoDB
         for i, record in enumerate(dataset):
-            # if i >= 5:
-            #     break
+            if i >= 5:
+                break
             
             # Extract unique product names from product_name array
             product_names = record.get('product_name', [])
@@ -132,11 +133,24 @@ def download_from_huggingface():
                 # Add all tags to unique set
                 unique_food_groups.update(food_groups_tags)
 
-            # Collect unique categories tags
-            categories_tags = record.get('categories_tags', [])
-            if categories_tags:
-                # Add all tags to unique set
-                unique_categories.update(categories_tags)
+            # Collect unique categories from categories field
+            categories = record.get('categories', '')
+            if categories:
+                # Split by comma and add each category to unique set
+                category_list = [c.strip() for c in categories.split(',') if c.strip()]
+                unique_categories.update(category_list)
+                
+                # Collect the last category from the array that doesn't contain ":"
+                if category_list:
+                    # Find the last category that doesn't contain a colon
+                    last_category_without_colon = None
+                    for category in reversed(category_list):
+                        if ':' not in category:
+                            last_category_without_colon = category
+                            break
+                    
+                    if last_category_without_colon:
+                        unique_last_categories.add(last_category_without_colon)
 
             lang = record.get('lang', "None_LANG_ATTRIBUTE")
             langs_map[lang] = langs_map.get(lang, 0) + 1
@@ -152,6 +166,7 @@ def download_from_huggingface():
 
         save_unique_food_groups_to_json(unique_food_groups)
         save_unique_categories_to_json(unique_categories)
+        save_unique_last_categories_to_json(unique_last_categories)
         
         # Close MongoDB connection
         client.close()
@@ -194,6 +209,22 @@ def save_unique_categories_to_json(unique_categories: set) -> None:
         print(f"Unique categories ({len(unique_list)} tags) saved to '{filename}'")
     except Exception as e:
         print(f"Error saving unique categories: {e}")
+
+
+
+
+def save_unique_last_categories_to_json(unique_last_categories: set) -> None:
+    """Save unique last category tags to a separate file."""
+    filename = "unique_last_categories.json"
+    
+    try:
+        # Convert set to sorted list for consistent output
+        unique_list = sorted(list(unique_last_categories))
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(unique_list, f, indent=2, ensure_ascii=False)
+        print(f"Unique last categories ({len(unique_list)} tags) saved to '{filename}'")
+    except Exception as e:
+        print(f"Error saving unique last categories: {e}")
 
 
 

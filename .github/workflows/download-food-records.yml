@@ -53,6 +53,7 @@ jobs:
           unique_food_groups.json
           categories_hierarchy.json
           unique_categories.json
+          unique_last_categories.json
         retention-days: 30
         
     - name: Upload run summary
