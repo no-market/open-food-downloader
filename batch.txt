@@ -12,7 +12,7 @@ OPUSTY łącznie
 C_SMAKI VIKTORII SO
 Pom MiniMalin 300g
 KrewetkiGotowane250g
-Culinia luz
+Cukinia luz
 Kapusta biała luz
 Pom malin Pols luz
 Fasolka Szpar luz
@@ -38,7 +38,6 @@ Czereśnie Luz
 Winogrono Jas
 Śmiet18 Piątnica400g
 Kalafior Luz
-KapPełkModuluz
 CzeskiMięKlasen150g
 KiełKrKransyst240g
 Jabł Jonagold Luz
