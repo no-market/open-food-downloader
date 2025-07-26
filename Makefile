@@ -1,4 +1,4 @@
-.PHONY: install run search search-batch test clean setup-local run-local search-local search-batch-local
+.PHONY: install run run-no-mongo search search-batch test clean setup-local run-local run-local-no-mongo search-local search-batch-local
 
 install:
 	@echo "Setting up virtual environment..."
@@ -11,6 +11,11 @@ install:
 run:
 	@if [ ! -d "venv" ]; then echo "Virtual environment not found. Run 'make install' first."; exit 1; fi
 	-. venv/bin/activate && python3 download_products.py
+
+run-no-mongo:
+	@if [ ! -d "venv" ]; then echo "Virtual environment not found. Run 'make install' first."; exit 1; fi
+	@echo "🚀 Running downloader without MongoDB storage..."
+	-export SAVE_TO_MONGO=false && . venv/bin/activate && python3 download_products.py
 
 search:
 	@if [ ! -d "venv" ]; then echo "Virtual environment not found. Run 'make install' first."; exit 1; fi
@@ -32,6 +37,11 @@ run-local: setup-local
 	@if [ ! -d "venv" ]; then echo "Virtual environment not found. Run 'make install' first."; exit 1; fi
 	@echo "🚀 Running downloader with local environment variables..."
 	@export $$(cat .env | grep -v '^#' | xargs) && . venv/bin/activate && python3 download_products.py
+
+run-local-no-mongo: setup-local
+	@if [ ! -d "venv" ]; then echo "Virtual environment not found. Run 'make install' first."; exit 1; fi
+	@echo "🚀 Running downloader with local environment variables (MongoDB storage disabled)..."
+	@export $$(cat .env | grep -v '^#' | xargs) && export SAVE_TO_MONGO=false && . venv/bin/activate && python3 download_products.py
 
 search-local: setup-local
 	@if [ ! -d "venv" ]; then echo "Virtual environment not found. Run 'make install' first."; exit 1; fi

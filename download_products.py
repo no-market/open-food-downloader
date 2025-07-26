@@ -11,31 +11,41 @@ import sys
 
 
 def download_from_huggingface():
-    """Download records from the OpenFoodFacts dataset on Hugging Face and store in MongoDB."""
+    """Download records from the OpenFoodFacts dataset on Hugging Face and optionally store in MongoDB."""
     try:
         from datasets import load_dataset
-        from pymongo import MongoClient
-        from pymongo.errors import ConnectionFailure, ConfigurationError
         
-        # Get MongoDB URI from environment variable
-        mongo_uri = os.getenv('MONGO_URI')
-        if not mongo_uri:
-            print("Error: MONGO_URI environment variable not set")
-            print("Please set the MongoDB connection URI in the MONGO_URI environment variable")
-            return []
+        # Check if we should save to MongoDB (default: true)
+        save_to_mongo = os.getenv('SAVE_TO_MONGO', 'true').lower() in ('true', '1', 'yes', 'on')
         
-        # Initialize MongoDB connection
-        try:
-            print(f"Connecting to MongoDB...")
-            client = MongoClient(mongo_uri)
-            # Test connection
-            client.admin.command('ping')
-            db = client.get_database()  # Use default database from URI or 'test'
-            collection = db['products-catalog']
-            print("Successfully connected to MongoDB")
-        except (ConnectionFailure, ConfigurationError) as e:
-            print(f"Error connecting to MongoDB: {e}")
-            return []
+        client = None
+        collection = None
+        
+        if save_to_mongo:
+            from pymongo import MongoClient
+            from pymongo.errors import ConnectionFailure, ConfigurationError
+            
+            # Get MongoDB URI from environment variable
+            mongo_uri = os.getenv('MONGO_URI')
+            if not mongo_uri:
+                print("Error: MONGO_URI environment variable not set")
+                print("Please set the MongoDB connection URI in the MONGO_URI environment variable")
+                return []
+            
+            # Initialize MongoDB connection
+            try:
+                print(f"Connecting to MongoDB...")
+                client = MongoClient(mongo_uri)
+                # Test connection
+                client.admin.command('ping')
+                db = client.get_database()  # Use default database from URI or 'test'
+                collection = db['products-catalog']
+                print("Successfully connected to MongoDB")
+            except (ConnectionFailure, ConfigurationError) as e:
+                print(f"Error connecting to MongoDB: {e}")
+                return []
+        else:
+            print("SAVE_TO_MONGO is disabled - data will be processed but not stored in MongoDB")
         
         print("Downloading dataset from Hugging Face...")
         print("Dataset: openfoodfacts/product-database")
@@ -47,14 +57,17 @@ def download_from_huggingface():
         dataset = dataset.filter(lambda record: record.get('lang') == 'pl')
         
         print("Dataset loaded successfully!")
-        print("Extracting and storing records in MongoDB...")
+        if save_to_mongo:
+            print("Extracting and storing records in MongoDB...")
+        else:
+            print("Extracting records (MongoDB storage disabled)...")
         langs_map = {}
         
         unique_food_groups = set()  # Collect unique food group tags
         unique_categories = set()  # Collect unique category tags
         unique_last_categories = set()  # Collect unique last category from each array
         
-        # Process records and store directly in MongoDB
+        # Process records and optionally store directly in MongoDB
         for i, record in enumerate(dataset):
             # if i >= 5:
             #     break
@@ -120,12 +133,13 @@ def download_from_huggingface():
                 'search_string': search_string,
             }
             
-            # Store product directly in MongoDB (upsert to handle duplicates)
-            try:
-                collection.replace_one({'_id': product['_id']}, product, upsert=True)
-            except Exception as e:
-                print(f"Error upserting product {product.get('_id')}: {e}")
-                continue
+            # Store product directly in MongoDB (upsert to handle duplicates) if enabled
+            if save_to_mongo and collection is not None:
+                try:
+                    collection.replace_one({'_id': product['_id']}, product, upsert=True)
+                except Exception as e:
+                    print(f"Error upserting product {product.get('_id')}: {e}")
+                    continue
 
             # Collect unique food groups tags
             food_groups_tags = record.get('food_groups_tags', [])
@@ -155,21 +169,28 @@ def download_from_huggingface():
             lang = record.get('lang', "None_LANG_ATTRIBUTE")
             langs_map[lang] = langs_map.get(lang, 0) + 1
 
-            print(f"Record {i + 1}: {product.get('_id')} - Stored in MongoDB")
+            if save_to_mongo:
+                print(f"Record {i + 1}: {product.get('_id')} - Stored in MongoDB")
+            else:
+                print(f"Record {i + 1}: {product.get('_id')} - Processed (MongoDB storage disabled)")
             
 
         print("Language distribution:")
         for lang, count in langs_map.items():
             print(f" - {lang}: {count}")
         
-        print(f"Successfully processed and stored {i + 1} records in MongoDB")
+        if save_to_mongo:
+            print(f"Successfully processed and stored {i + 1} records in MongoDB")
+        else:
+            print(f"Successfully processed {i + 1} records (MongoDB storage was disabled)")
 
         save_unique_food_groups_to_json(unique_food_groups)
         save_unique_categories_to_json(unique_categories)
         save_unique_last_categories_to_json(unique_last_categories)
         
-        # Close MongoDB connection
-        client.close()
+        # Close MongoDB connection if it was opened
+        if client:
+            client.close()
 
     except ImportError:
         print("Required packages not installed. Please run: pip install -r requirements.txt")
@@ -230,9 +251,13 @@ def save_unique_last_categories_to_json(unique_last_categories: set) -> None:
 
 
 def main():
-    """Main function to download and store food records in MongoDB."""
+    """Main function to download and optionally store food records in MongoDB."""
     print("OpenFoodFacts Product Downloader")
-    print("Downloading food records from dataset and storing in MongoDB")
+    save_to_mongo = os.getenv('SAVE_TO_MONGO', 'true').lower() in ('true', '1', 'yes', 'on')
+    if save_to_mongo:
+        print("Downloading food records from dataset and storing in MongoDB")
+    else:
+        print("Downloading food records from dataset (MongoDB storage disabled)")
     print("Source: https://huggingface.co/datasets/openfoodfacts/product-database")
     print()
     

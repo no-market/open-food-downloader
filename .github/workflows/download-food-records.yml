@@ -8,6 +8,14 @@ on:
         description: 'Description of the manual run'
         required: false
         default: 'Manual download of food records'
+      save_to_mongo:
+        description: 'Save records to MongoDB'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 jobs:
   download-food-records:
@@ -37,9 +45,16 @@ jobs:
     - name: Download and display food records
       env:
         MONGO_URI: ${{ secrets.MONGO_URI }}
+        SAVE_TO_MONGO: ${{ inputs.save_to_mongo || 'true' }}
       run: |
         echo "🚀 Starting food records download..."
-        make run
+        if [ "$SAVE_TO_MONGO" = "true" ]; then
+          echo "📊 MongoDB storage: ENABLED"
+          make run
+        else
+          echo "📊 MongoDB storage: DISABLED"
+          make run-no-mongo
+        fi
         echo "✅ Food records download completed!"
         
     - name: Upload artifacts
@@ -63,6 +78,11 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "✅ **Status**: Completed successfully" >> $GITHUB_STEP_SUMMARY
         echo "📊 **Records**: 5 food product records downloaded and displayed" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ inputs.save_to_mongo || 'true' }}" = "true" ]; then
+          echo "💾 **MongoDB Storage**: ENABLED" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "💾 **MongoDB Storage**: DISABLED" >> $GITHUB_STEP_SUMMARY
+        fi
         echo "🔗 **Source**: OpenFoodFacts dataset via Hugging Face" >> $GITHUB_STEP_SUMMARY
         echo "📁 **Artifacts**: All outputs saved as 'food-data-outputs' artifact" >> $GITHUB_STEP_SUMMARY
         echo "  - **Products**: products.json" >> $GITHUB_STEP_SUMMARY
