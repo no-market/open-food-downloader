@@ -50,11 +50,10 @@ jobs:
         echo "🚀 Starting food records download..."
         if [ "$SAVE_TO_MONGO" = "true" ]; then
           echo "📊 MongoDB storage: ENABLED"
-          make run
         else
           echo "📊 MongoDB storage: DISABLED"
-          make run-no-mongo
         fi
+        make run
         echo "✅ Food records download completed!"
         
     - name: Upload artifacts
