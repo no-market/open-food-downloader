@@ -19,7 +19,7 @@ on:
       save_to_pinecone:
         description: 'Save categories to Pinecone'
         required: false
-        default: 'false'
+        default: 'true'
         type: choice
         options:
           - 'true'
