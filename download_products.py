@@ -78,8 +78,8 @@ def download_from_huggingface():
         
         # Process records and optionally store directly in MongoDB
         for i, record in enumerate(dataset):
-            if i >= 5:
-                break
+            # if i >= 5:
+            #     break
             
             # Extract unique product names from product_name array
             product_names = record.get('product_name', [])
