@@ -27,7 +27,6 @@
 - `pinecone_integration.py` - Core Pinecone functionality
 - `test_pinecone_integration.py` - Comprehensive unit tests (14 tests)
 - `test_integration_pinecone.py` - End-to-end integration tests
-- `demo_pinecone.py` - Demonstration script
 
 ### Modified Files:
 - `download_products.py` - Added Pinecone integration to main pipeline
