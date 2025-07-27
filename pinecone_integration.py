@@ -57,6 +57,9 @@ def create_category_embeddings(unique_last_categories: Dict[str, str]) -> List[T
         for i, (category_name, full_path) in enumerate(unique_last_categories.items()):
             # Create unique category ID from category name
             category_id = category_name.lower().replace(' ', '_').replace('&', 'and')
+            # Convert non-ASCII characters to ASCII equivalent
+            import unicodedata
+            category_id = unicodedata.normalize('NFKD', category_id).encode('ascii', 'ignore').decode('ascii')
             # Remove any special characters that might cause issues
             category_id = ''.join(c for c in category_id if c.isalnum() or c in '_-')
             
