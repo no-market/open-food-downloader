@@ -7,6 +7,7 @@ Downloads records from the Hugging Face dataset and stores them in MongoDB.
 import json
 import os
 import sys
+from pinecone_integration import process_categories_to_pinecone
 
 
 
@@ -17,6 +18,9 @@ def download_from_huggingface():
         
         # Check if we should save to MongoDB (default: true)
         save_to_mongo = os.getenv('SAVE_TO_MONGO', 'true').lower() in ('true', '1', 'yes', 'on')
+        
+        # Check if we should save to Pinecone (default: false)
+        save_to_pinecone = os.getenv('SAVE_TO_PINECONE', 'false').lower() in ('true', '1', 'yes', 'on')
         
         client = None
         collection = None
@@ -46,6 +50,11 @@ def download_from_huggingface():
                 return []
         else:
             print("SAVE_TO_MONGO is disabled - data will be processed but not stored in MongoDB")
+        
+        if save_to_pinecone:
+            print("SAVE_TO_PINECONE is enabled - categories will be embedded and stored in Pinecone")
+        else:
+            print("SAVE_TO_PINECONE is disabled - categories will not be stored in Pinecone")
         
         print("Downloading dataset from Hugging Face...")
         print("Dataset: openfoodfacts/product-database")
@@ -191,6 +200,15 @@ def download_from_huggingface():
         save_unique_categories_to_json(unique_categories)
         save_unique_last_categories_to_json(unique_last_categories)
         
+        # Process categories to Pinecone if enabled
+        if save_to_pinecone:
+            print("\nProcessing categories for Pinecone...")
+            pinecone_success = process_categories_to_pinecone(unique_last_categories)
+            if pinecone_success:
+                print("Categories successfully processed and uploaded to Pinecone")
+            else:
+                print("Warning: Failed to process categories to Pinecone")
+        
         # Close MongoDB connection if it was opened
         if client:
             client.close()
@@ -256,10 +274,18 @@ def main():
     """Main function to download and optionally store food records in MongoDB."""
     print("OpenFoodFacts Product Downloader")
     save_to_mongo = os.getenv('SAVE_TO_MONGO', 'true').lower() in ('true', '1', 'yes', 'on')
+    save_to_pinecone = os.getenv('SAVE_TO_PINECONE', 'false').lower() in ('true', '1', 'yes', 'on')
+    
     if save_to_mongo:
         print("Downloading food records from dataset and storing in MongoDB")
     else:
         print("Downloading food records from dataset (MongoDB storage disabled)")
+    
+    if save_to_pinecone:
+        print("Pinecone integration enabled - will embed and store categories")
+    else:
+        print("Pinecone integration disabled")
+    
     print("Source: https://huggingface.co/datasets/openfoodfacts/product-database")
     print()
     
