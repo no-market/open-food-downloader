@@ -7,7 +7,7 @@ Downloads records from the Hugging Face dataset and stores them in MongoDB.
 import json
 import os
 import sys
-from pinecone_integration import check_pinecone_enabled, process_categories_to_pinecone
+from pinecone_integration import process_categories_to_pinecone
 
 
 
@@ -19,8 +19,8 @@ def download_from_huggingface():
         # Check if we should save to MongoDB (default: true)
         save_to_mongo = os.getenv('SAVE_TO_MONGO', 'true').lower() in ('true', '1', 'yes', 'on')
         
-        # Check if we should save to Pinecone
-        save_to_pinecone = check_pinecone_enabled()
+        # Check if we should save to Pinecone (default: false)
+        save_to_pinecone = os.getenv('SAVE_TO_PINECONE', 'false').lower() in ('true', '1', 'yes', 'on')
         
         client = None
         collection = None
@@ -274,7 +274,7 @@ def main():
     """Main function to download and optionally store food records in MongoDB."""
     print("OpenFoodFacts Product Downloader")
     save_to_mongo = os.getenv('SAVE_TO_MONGO', 'true').lower() in ('true', '1', 'yes', 'on')
-    save_to_pinecone = check_pinecone_enabled()
+    save_to_pinecone = os.getenv('SAVE_TO_PINECONE', 'false').lower() in ('true', '1', 'yes', 'on')
     
     if save_to_mongo:
         print("Downloading food records from dataset and storing in MongoDB")
