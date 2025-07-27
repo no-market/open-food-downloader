@@ -47,14 +47,11 @@ def create_category_embeddings(unique_last_categories: Dict[str, str]) -> List[T
         
         print(f"Creating embeddings for {len(unique_last_categories)} categories...")
         
-        # Prepare texts for batch encoding
-        full_paths = list(unique_last_categories.values())
-        category_names = list(unique_last_categories.keys())
+        # First pass: validate category names and create list of valid categories
+        valid_categories = []
+        skipped_categories = []
         
-        # Create embeddings in batch for efficiency
-        embeddings = model.encode(full_paths, show_progress_bar=True)
-        
-        for i, (category_name, full_path) in enumerate(unique_last_categories.items()):
+        for category_name, full_path in unique_last_categories.items():
             # Create unique category ID from category name
             category_id = category_name.lower().replace(' ', '_').replace('&', 'and')
             # Convert non-ASCII characters to ASCII equivalent
@@ -63,6 +60,35 @@ def create_category_embeddings(unique_last_categories: Dict[str, str]) -> List[T
             # Remove any special characters that might cause issues
             category_id = ''.join(c for c in category_id if c.isalnum() or c in '_-')
             
+            # Validate category ID - skip if empty (Pinecone requires ID length >= 1)
+            if not category_id or len(category_id) == 0:
+                skipped_categories.append((category_name, full_path))
+                print(f"Warning: Skipping category with empty ID - original name: '{category_name}'")
+                continue
+            
+            valid_categories.append((category_name, full_path, category_id))
+        
+        # Log summary of skipped categories
+        if skipped_categories:
+            print(f"Skipped {len(skipped_categories)} categories with invalid IDs that would fail Pinecone validation")
+            print("Skipped categories:")
+            for category_name, full_path in skipped_categories:
+                print(f"  - '{category_name}' (path: {full_path})")
+        
+        if not valid_categories:
+            print("No valid categories to process after validation")
+            return []
+        
+        print(f"Processing {len(valid_categories)} valid categories for embeddings...")
+        
+        # Prepare texts for batch encoding (only valid categories)
+        full_paths = [item[1] for item in valid_categories]
+        
+        # Create embeddings in batch for efficiency (only for valid categories)
+        embeddings = model.encode(full_paths, show_progress_bar=True)
+        
+        # Create embeddings data with validated categories
+        for i, (category_name, full_path, category_id) in enumerate(valid_categories):
             # Get the embedding for this category
             embedding = embeddings[i]
             if hasattr(embedding, 'tolist'):
