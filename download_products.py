@@ -65,7 +65,7 @@ def download_from_huggingface():
         
         unique_food_groups = set()  # Collect unique food group tags
         unique_categories = set()  # Collect unique category tags
-        unique_last_categories = set()  # Collect unique last category from each array
+        unique_last_categories = {}  # Collect unique last category mapping to full path
         
         # Process records and optionally store directly in MongoDB
         for i, record in enumerate(dataset):
@@ -154,17 +154,20 @@ def download_from_huggingface():
                 category_list = [c.strip() for c in categories.split(',') if c.strip()]
                 unique_categories.update(category_list)
                 
-                # Collect the last category from the array that doesn't contain ":"
+                # Build mapping from last category to full path, skipping categories with ":"
                 if category_list:
-                    # Find the last category that doesn't contain a colon
-                    last_category_without_colon = None
-                    for category in reversed(category_list):
-                        if ':' not in category:
-                            last_category_without_colon = category
-                            break
+                    # Filter out categories containing ":"
+                    filtered_categories = [cat for cat in category_list if ':' not in cat]
                     
-                    if last_category_without_colon:
-                        unique_last_categories.add(last_category_without_colon)
+                    if filtered_categories:
+                        # Get the last category
+                        last_category = filtered_categories[-1]
+                        
+                        # Build full path using ">" separator
+                        full_path = " > ".join(filtered_categories)
+                        
+                        # Store the mapping
+                        unique_last_categories[last_category] = full_path
 
             lang = record.get('lang', "None_LANG_ATTRIBUTE")
             langs_map[lang] = langs_map.get(lang, 0) + 1
@@ -234,16 +237,15 @@ def save_unique_categories_to_json(unique_categories: set) -> None:
 
 
 
-def save_unique_last_categories_to_json(unique_last_categories: set) -> None:
-    """Save unique last category tags to a separate file."""
+def save_unique_last_categories_to_json(unique_last_categories: dict) -> None:
+    """Save unique last category mappings to a separate file."""
     filename = "unique_last_categories.json"
     
     try:
-        # Convert set to sorted list for consistent output
-        unique_list = sorted(list(unique_last_categories))
+        # Save as dictionary with sorted keys for consistent output
         with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(unique_list, f, indent=2, ensure_ascii=False)
-        print(f"Unique last categories ({len(unique_list)} tags) saved to '{filename}'")
+            json.dump(unique_last_categories, f, indent=2, ensure_ascii=False, sort_keys=True)
+        print(f"Unique last categories ({len(unique_last_categories)} items) saved to '{filename}'")
     except Exception as e:
         print(f"Error saving unique last categories: {e}")
 
