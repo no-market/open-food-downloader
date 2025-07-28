@@ -6,7 +6,7 @@ Uses SentenceTransformers to embed categories and stores them in Pinecone for se
 
 import os
 import logging
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Any
 import time
 
 def check_pinecone_enabled() -> bool:
@@ -179,6 +179,76 @@ def upload_to_pinecone(embeddings_data: List[Tuple[str, List[float], str]], batc
     except Exception as e:
         print(f"Error uploading to Pinecone: {e}")
         return False
+
+def search_pinecone(search_string: str, top_k: int = 10) -> List[Dict[str, any]]:
+    """
+    Search Pinecone index for similar categories based on search string.
+    
+    Args:
+        search_string: The search query string
+        top_k: Number of top results to return
+        
+    Returns:
+        List of search results with scores and metadata
+    """
+    try:
+        from pinecone import Pinecone
+        from sentence_transformers import SentenceTransformer
+        
+        # Get Pinecone configuration
+        config = get_pinecone_config()
+        
+        print("Connecting to Pinecone for search...")
+        pc = Pinecone(api_key=config['api_key'])
+        
+        # Connect to the index
+        index_name = config['index_name']
+        index = pc.Index(index_name)
+        
+        print(f"Connected to Pinecone index: {index_name}")
+        
+        # Create embedding for search string
+        print("Loading SentenceTransformer model for search embedding...")
+        model = SentenceTransformer('all-MiniLM-L6-v2')
+        
+        # Create embedding for the search string
+        search_embedding = model.encode([search_string])[0]
+        if hasattr(search_embedding, 'tolist'):
+            search_embedding = search_embedding.tolist()
+        else:
+            search_embedding = list(search_embedding)
+        
+        # Perform similarity search
+        print(f"Searching for similar categories to: '{search_string}'")
+        search_results = index.query(
+            vector=search_embedding,
+            top_k=top_k,
+            include_metadata=True
+        )
+        
+        # Process results
+        results = []
+        for match in search_results.matches:
+            result = {
+                'id': match.id,
+                'score': float(match.score),
+                'category_name': match.metadata.get('category_name', ''),
+                'full_path': match.metadata.get('full_path', ''),
+                'given_name': match.metadata.get('category_name', ''),  # Use category_name as given_name
+                'text': match.metadata.get('full_path', '')  # Use full_path as text
+            }
+            results.append(result)
+        
+        print(f"Found {len(results)} Pinecone search results")
+        return results
+        
+    except ImportError as e:
+        print(f"Error: Required package not installed. {e}")
+        return []
+    except Exception as e:
+        print(f"Error searching Pinecone: {e}")
+        return []
+
 
 def process_categories_to_pinecone(unique_last_categories: Dict[str, str]) -> bool:
     """
