@@ -7,7 +7,7 @@ Downloads records from the Hugging Face dataset and stores them in MongoDB.
 import json
 import os
 import sys
-from pinecone_integration import process_categories_to_pinecone
+from pinecone_integration import process_categories_to_pinecone, process_products_to_pinecone
 
 
 
@@ -52,9 +52,9 @@ def download_from_huggingface():
             print("SAVE_TO_MONGO is disabled - data will be processed but not stored in MongoDB")
         
         if save_to_pinecone:
-            print("SAVE_TO_PINECONE is enabled - categories will be embedded and stored in Pinecone")
+            print("SAVE_TO_PINECONE is enabled - products will be embedded and stored in Pinecone")
         else:
-            print("SAVE_TO_PINECONE is disabled - categories will not be stored in Pinecone")
+            print("SAVE_TO_PINECONE is disabled - products will not be stored in Pinecone")
         
         print("Downloading dataset from Hugging Face...")
         print("Dataset: openfoodfacts/product-database")
@@ -75,6 +75,7 @@ def download_from_huggingface():
         unique_food_groups = set()  # Collect unique food group tags
         unique_categories = set()  # Collect unique category tags
         unique_last_categories = {}  # Collect unique last category mapping to full path
+        products_for_pinecone = []  # Collect products for Pinecone upload
         
         # Process records and optionally store directly in MongoDB
         for i, record in enumerate(dataset):
@@ -150,6 +151,10 @@ def download_from_huggingface():
                     print(f"Error upserting product {product.get('_id')}: {e}")
                     continue
 
+            # Collect product for Pinecone upload if enabled
+            if save_to_pinecone:
+                products_for_pinecone.append(product)
+
             # Collect unique food groups tags
             food_groups_tags = record.get('food_groups_tags', [])
             if food_groups_tags:
@@ -200,14 +205,14 @@ def download_from_huggingface():
         save_unique_categories_to_json(unique_categories)
         save_unique_last_categories_to_json(unique_last_categories)
         
-        # Process categories to Pinecone if enabled
+        # Process products to Pinecone if enabled
         if save_to_pinecone:
-            print("\nProcessing categories for Pinecone...")
-            pinecone_success = process_categories_to_pinecone(unique_last_categories)
+            print(f"\nProcessing {len(products_for_pinecone)} products for Pinecone...")
+            pinecone_success = process_products_to_pinecone(products_for_pinecone)
             if pinecone_success:
-                print("Categories successfully processed and uploaded to Pinecone")
+                print("Products successfully processed and uploaded to Pinecone")
             else:
-                print("Warning: Failed to process categories to Pinecone")
+                print("Warning: Failed to process products to Pinecone")
         
         # Close MongoDB connection if it was opened
         if client:
@@ -282,7 +287,7 @@ def main():
         print("Downloading food records from dataset (MongoDB storage disabled)")
     
     if save_to_pinecone:
-        print("Pinecone integration enabled - will embed and store categories")
+        print("Pinecone integration enabled - will embed and store products")
     else:
         print("Pinecone integration disabled")
     
