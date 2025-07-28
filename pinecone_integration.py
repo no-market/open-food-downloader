@@ -40,8 +40,8 @@ def create_category_embeddings(unique_last_categories: Dict[str, str]) -> List[T
     try:
         from sentence_transformers import SentenceTransformer
         
-        print("Loading SentenceTransformer model 'all-MiniLM-L6-v2'...")
-        model = SentenceTransformer('all-MiniLM-L6-v2')
+        print("Loading SentenceTransformer model 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2'...")
+        model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
         
         embeddings_data = []
         
@@ -209,7 +209,7 @@ def search_pinecone(search_string: str, top_k: int = 10) -> List[Dict[str, any]]
         
         # Create embedding for search string
         print("Loading SentenceTransformer model for search embedding...")
-        model = SentenceTransformer('all-MiniLM-L6-v2')
+        model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
         
         # Create embedding for the search string
         search_embedding = model.encode([search_string])[0]
