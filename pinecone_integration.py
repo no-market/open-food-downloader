@@ -103,13 +103,47 @@ def create_product_embeddings(products: List[Dict[str, Any]]) -> List[Tuple[str,
                             product_names.append(text)
             
             # Create metadata with all search_string component fields
+            # Ensure all values are valid for Pinecone (no null/None values)
+            
+            # Handle quantity - convert null to empty string
+            quantity = product.get('quantity')
+            quantity = str(quantity) if quantity is not None else ''
+            
+            # Handle brands - convert null to empty string
+            brands = product.get('brands')
+            brands = str(brands) if brands is not None else ''
+            
+            # Handle categories - ensure it's a list of strings with no null values
+            categories = product.get('categories', [])
+            if categories is None:
+                categories = []
+            elif not isinstance(categories, list):
+                categories = [str(categories)] if categories is not None else []
+            else:
+                # Filter out any null values from the list
+                categories = [str(cat) for cat in categories if cat is not None]
+            
+            # Handle labels - ensure it's a list of strings with no null values
+            labels = product.get('labels', [])
+            if labels is None:
+                labels = []
+            elif not isinstance(labels, list):
+                labels = [str(labels)] if labels is not None else []
+            else:
+                # Filter out any null values from the list
+                labels = [str(label) for label in labels if label is not None]
+            
+            # Handle search_string - convert null to empty string
+            search_string = product.get('search_string')
+            search_string = str(search_string) if search_string is not None else ''
+            
             metadata = {
                 'product_names': product_names,
-                'quantity': product.get('quantity', ''),
-                'brands': product.get('brands', ''),
-                'categories': product.get('categories', []) if isinstance(product.get('categories', []), list) else [product.get('categories', '')],
-                'labels': product.get('labels', []) if isinstance(product.get('labels', []), list) else [product.get('labels', '')],
-                'search_string': product.get('search_string', ''),
+                'quantity': quantity,
+                'brands': brands,
+                'categories': categories,
+                'labels': labels,
+                'search_string': search_string,
                 '_id': product_id
             }
             
