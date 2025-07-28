@@ -304,12 +304,34 @@ def main():
         for i, result in enumerate(results['pinecone_search']['results'][:10]):
             score = result.get('score', 0)
             result_id = result.get('id', 'Unknown')
-            given_name = result.get('given_name', 'N/A')  # category_name
-            text = result.get('text', 'N/A')  # full_path
+            given_name = result.get('given_name', 'N/A')
+            text = result.get('text', 'N/A')
             
             print(f"  {i+1}. Pinecone Score: {score:.4f} - ID: {result_id}")
             print(f"     Given Name: {given_name}")
             print(f"     Text: {text}")
+            
+            # Display additional product metadata if available
+            metadata = result.get('metadata', {})
+            if 'product_names' in metadata:
+                # This is a product result
+                product_names = metadata.get('product_names', [])
+                quantity = metadata.get('quantity', '')
+                brands = metadata.get('brands', '')
+                categories = metadata.get('categories', [])
+                labels = metadata.get('labels', [])
+                
+                if product_names:
+                    print(f"     Product Names: {', '.join(product_names)}")
+                if quantity:
+                    print(f"     Quantity: {quantity}")
+                if brands:
+                    print(f"     Brands: {brands}")
+                if categories:
+                    print(f"     Categories: {', '.join(categories) if isinstance(categories, list) else categories}")
+                if labels:
+                    print(f"     Labels: {', '.join(labels) if isinstance(labels, list) else labels}")
+            
             print()
 
 
