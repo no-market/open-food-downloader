@@ -18,9 +18,9 @@ def test_display_csv_as_table_basic():
     # Create a temporary CSV file
     with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
         writer = csv.writer(f)
-        writer.writerow(['Number', 'Input string', 'Given Name', 'Score', 'ID'])
-        writer.writerow(['1.Mongo', 'nutella chocolate', 'Hazelnut Spreads', '15.42', '507f1f77bcb8218b39000001'])
-        writer.writerow(['1.Fuzzy', 'nutella chocolate', 'Chocolate Spreads', '125.75', '507f1f77bcb8218b39000002'])
+        writer.writerow(['Number', 'Input string', 'Given Name', 'Score', 'ID', 'Categories', 'Product Names'])
+        writer.writerow(['1.Mongo', 'nutella chocolate', 'Hazelnut Spreads', '15.42', '507f1f77bcb8218b39000001', 'Spreads,Sweet spreads', 'Nutella; Chocolate spread'])
+        writer.writerow(['1.Fuzzy', 'nutella chocolate', 'Chocolate Spreads', '125.75', '507f1f77bcb8218b39000002', 'Chocolate spreads', 'Hazelnut chocolate spread'])
         temp_file = f.name
     
     try:
@@ -103,10 +103,10 @@ def test_display_csv_as_table_truncation():
     # Create a CSV file with long content
     with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
         writer = csv.writer(f)
-        writer.writerow(['Number', 'Input string', 'Given Name', 'Score', 'ID'])
+        writer.writerow(['Number', 'Input string', 'Given Name', 'Score', 'ID', 'Categories', 'Product Names'])
         writer.writerow(['1.Mongo', 'very long product name that should be truncated', 
                         'Very Long Category Name That Should Be Truncated Too', 
-                        '15.42', '507f1f77bcb8218b39000001'])
+                        '15.42', '507f1f77bcb8218b39000001', 'Very long categories list', 'Very long product names list'])
         temp_file = f.name
     
     try:
@@ -141,9 +141,9 @@ def test_display_csv_as_table_row_limit():
     # Create a CSV file with many rows
     with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
         writer = csv.writer(f)
-        writer.writerow(['Number', 'Input string', 'Given Name', 'Score', 'ID'])
+        writer.writerow(['Number', 'Input string', 'Given Name', 'Score', 'ID', 'Categories', 'Product Names'])
         for i in range(1, 11):  # Create 10 rows
-            writer.writerow([f'{i}.Mongo', f'product{i}', f'Category{i}', f'{i}.50', f'id{i}'])
+            writer.writerow([f'{i}.Mongo', f'product{i}', f'Category{i}', f'{i}.50', f'id{i}', f'categories{i}', f'names{i}'])
         temp_file = f.name
     
     try:
@@ -179,9 +179,9 @@ def test_display_csv_as_table_polish_characters():
     # Create a CSV file with Polish characters
     with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False, encoding='utf-8') as f:
         writer = csv.writer(f)
-        writer.writerow(['Number', 'Input string', 'Given Name', 'Score', 'ID'])
-        writer.writerow(['1.Mongo', 'chleb żytni', 'Pieczywo żytnie', '15.42', '507f1f77bcb8218b39000001'])
-        writer.writerow(['1.Fuzzy', 'śmietana 18%', 'Nabiał świeży', '125.75', '507f1f77bcb8218b39000002'])
+        writer.writerow(['Number', 'Input string', 'Given Name', 'Score', 'ID', 'Categories', 'Product Names'])
+        writer.writerow(['1.Mongo', 'chleb żytni', 'Pieczywo żytnie', '15.42', '507f1f77bcb8218b39000001', 'Pieczywo,Żytnie', 'Chleb żytni razowy'])
+        writer.writerow(['1.Fuzzy', 'śmietana 18%', 'Nabiał świeży', '125.75', '507f1f77bcb8218b39000002', 'Nabiał,Śmietana', 'Śmietana 18% tłuszczu'])
         temp_file = f.name
     
     try:
@@ -208,6 +208,8 @@ def test_display_csv_as_table_polish_characters():
         assert "Pieczywo żytnie" in output_str, "Should contain Polish characters"
         assert "śmietana 18%" in output_str, "Should contain Polish characters"
         assert "Nabiał świeży" in output_str, "Should contain Polish characters"
+        assert "Pieczywo,Żytnie" in output_str, "Should contain categories field"
+        assert "Chleb żytni razowy" in output_str, "Should contain product names field"
         
     finally:
         # Clean up
