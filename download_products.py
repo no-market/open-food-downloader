@@ -10,6 +10,47 @@ import sys
 from pinecone_integration import process_categories_to_pinecone, process_products_to_pinecone
 
 
+def is_valid_product(record):
+    """
+    Check if a product meets the validation criteria:
+    - Has at least 1 not blank product_name[].text
+    - Has at least 1 not blank category which does not contain ":"
+    
+    Args:
+        record: The product record from the dataset
+        
+    Returns:
+        bool: True if product is valid, False if it should be skipped
+    """
+    # Check product names
+    product_names = record.get('product_name', [])
+    has_valid_name = False
+    
+    if isinstance(product_names, list):
+        for name_obj in product_names:
+            if isinstance(name_obj, dict) and 'text' in name_obj:
+                text = name_obj['text']
+                if text and text.strip():  # Not blank
+                    has_valid_name = True
+                    break
+    
+    if not has_valid_name:
+        return False
+    
+    # Check categories
+    categories = record.get('categories', '')
+    has_valid_category = False
+    
+    if categories:
+        # Split by comma and check each category
+        category_list = [c.strip() for c in categories.split(',') if c.strip()]
+        for category in category_list:
+            if category and ':' not in category:  # Not blank and no ":"
+                has_valid_category = True
+                break
+    
+    return has_valid_category
+
 
 def download_from_huggingface():
     """Download records from the OpenFoodFacts dataset on Hugging Face and optionally store in MongoDB."""
@@ -78,9 +119,17 @@ def download_from_huggingface():
         products_for_pinecone = []  # Collect products for Pinecone upload
         
         # Process records and optionally store directly in MongoDB
+        skipped_count = 0
         for i, record in enumerate(dataset):
             # if i >= 5:
             #     break
+            
+            # Validate product before processing
+            if not is_valid_product(record):
+                skipped_count += 1
+                if skipped_count <= 10:  # Log first 10 skipped products for debugging
+                    print(f"Skipped product {record.get('code', 'unknown')}: Missing valid product name or category without ':'")
+                continue
             
             # Extract unique product names from product_name array
             product_names = record.get('product_name', [])
@@ -196,10 +245,14 @@ def download_from_huggingface():
         for lang, count in langs_map.items():
             print(f" - {lang}: {count}")
         
+        processed_count = i + 1 - skipped_count  # Total processed minus skipped
         if save_to_mongo:
-            print(f"Successfully processed and stored {i + 1} records in MongoDB")
+            print(f"Successfully processed and stored {processed_count} records in MongoDB")
         else:
-            print(f"Successfully processed {i + 1} records (MongoDB storage was disabled)")
+            print(f"Successfully processed {processed_count} records (MongoDB storage was disabled)")
+        
+        if skipped_count > 0:
+            print(f"Skipped {skipped_count} invalid products (missing valid name or categories with ':')")
 
         save_unique_food_groups_to_json(unique_food_groups)
         save_unique_categories_to_json(unique_categories)
