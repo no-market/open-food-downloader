@@ -3,7 +3,7 @@
 Script to search existing products catalog in MongoDB by text search for multiple products from a batch file.
 Reads product names from batch.txt file and outputs results in CSV format.
 
-Output CSV format: Number, Input string, Given Name, Score, ID
+Output CSV format: Number, Input string, Given Name, Score, ID, Categories, Product Names
 - For each product: 1 MongoDB result + 1 RapidFuzz result (top scored from each)
 - Number column: 1.Mongo, 1.Fuzzy, 2.Mongo, 2.Fuzzy, etc.
 """
@@ -269,10 +269,10 @@ def format_csv_row(product_num: int, search_type: str, input_string: str, result
         result: Search result dictionary or None
         
     Returns:
-        List of strings for CSV row: [Number, Input string, Given Name, Score, ID]
+        List of strings for CSV row: [Number, Input string, Given Name, Score, ID, Categories, Product Names]
     """
     if not result:
-        return [f"{product_num}.{search_type}", input_string, "", "0", ""]
+        return [f"{product_num}.{search_type}", input_string, "", "0", "", "", ""]
     
     # Extract required fields
     given_name = result.get('given_name', '')
@@ -284,12 +284,30 @@ def format_csv_row(product_num: int, search_type: str, input_string: str, result
     else:  # Fuzzy
         score = result.get('rapidfuzz_score', 0)
     
+    # Extract categories field
+    categories = result.get('categories', '')
+    
+    # Extract product names from product_name array
+    product_names = []
+    product_name_array = result.get('product_name', [])
+    if isinstance(product_name_array, list):
+        for item in product_name_array:
+            if isinstance(item, dict) and 'text' in item:
+                text = item['text']
+                if text and text.strip():
+                    product_names.append(text.strip())
+    
+    # Join product names with semicolon separator
+    product_names_str = '; '.join(product_names) if product_names else ''
+    
     return [
         f"{product_num}.{search_type}",
         input_string,
         given_name,
         f"{score:.2f}",
-        str(product_id)
+        str(product_id),
+        categories,
+        product_names_str
     ]
 
 
@@ -316,7 +334,7 @@ def search_batch_products(batch_file: str = "batch.txt", output_file: str = None
     
     # Prepare CSV data
     csv_rows = []
-    csv_headers = ["Number", "Input string", "Given Name", "Score", "ID"]
+    csv_headers = ["Number", "Input string", "Given Name", "Score", "ID", "Categories", "Product Names"]
     
     print(f"\nStarting batch search for {len(product_names)} products...")
     print("=" * 50)
@@ -400,7 +418,7 @@ def main():
     print(f"\n📋 Summary:")
     print(f"- Input file: {args.batch}")
     print(f"- Output file: {output_file}")
-    print("- Format: CSV with columns: Number, Input string, Given Name, Score, ID")
+    print("- Format: CSV with columns: Number, Input string, Given Name, Score, ID, Categories, Product Names")
     print("- Each product has 2 rows: N.Mongo and N.Fuzzy results")
 
 
