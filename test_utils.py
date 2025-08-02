@@ -183,6 +183,46 @@ class TestComputeGivenName:
             },
             ""
         ),
+        # Test case 6: pl: category at the end (should take it without prefix)
+        (
+            {
+                "categories": "Spreads,en:chocolate-spreads,fr:chocolat,pl:czekolada",
+                "product_name": [{"lang": "main", "text": "Test Product"}]
+            },
+            "czekolada"
+        ),
+        # Test case 7: PL: prefix uppercase (case insensitive)
+        (
+            {
+                "categories": "en:food,fr:beurre,PL:masło",
+                "product_name": [{"lang": "main", "text": "Test Product"}]
+            },
+            "masło"
+        ),
+        # Test case 8: pl: category with normal category after (should take normal category)
+        (
+            {
+                "categories": "pl:jedzenie,en:food,Normal Category",
+                "product_name": [{"lang": "main", "text": "Test Product"}]
+            },
+            "Normal Category"
+        ),
+        # Test case 9: Only pl: categories (should take last one without prefix)
+        (
+            {
+                "categories": "pl:jedzenie,pl:orzechy,pl:czekolada",
+                "product_name": [{"lang": "main", "text": "Test Product"}]
+            },
+            "czekolada"
+        ),
+        # Test case 10: Mixed case Pl: prefix
+        (
+            {
+                "categories": "en:spreads,Pl:masło_orzechowe,fr:beurre",
+                "product_name": [{"lang": "main", "text": "Test Product"}]
+            },
+            "masło_orzechowe"
+        ),
     ])
     def test_compute_given_name(self, document, expected_output):
         """Test compute_given_name with various scenarios."""
