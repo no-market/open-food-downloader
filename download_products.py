@@ -14,7 +14,7 @@ def is_valid_product(record):
     """
     Check if a product meets the validation criteria:
     - Has at least 1 not blank product_name[].text
-    - Has at least 1 not blank category which does not contain ":"
+    - Has at least 1 not blank category which does not contain ":" or starts with "pl:" (case insensitive)
     
     Args:
         record: The product record from the dataset
@@ -45,9 +45,16 @@ def is_valid_product(record):
         # Split by comma and check each category
         category_list = [c.strip() for c in categories.split(',') if c.strip()]
         for category in category_list:
-            if category and ':' not in category:  # Not blank and no ":"
-                has_valid_category = True
-                break
+            if category:
+                # Check if category starts with "pl:" (case insensitive) or has no colon
+                if category.lower().startswith('pl:'):
+                    pl_category = category[3:]  # Remove "pl:" prefix
+                    if pl_category:  # Only consider valid if non-empty after prefix removal
+                        has_valid_category = True
+                        break
+                elif ':' not in category:
+                    has_valid_category = True
+                    break
     
     return has_valid_category
 

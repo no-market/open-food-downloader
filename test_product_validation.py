@@ -145,3 +145,43 @@ class TestProductValidation:
             'categories': 'en:spreads,fr:pates-a-tartiner'
         }
         assert is_valid_product(record) == False
+    
+    def test_valid_product_with_pl_category(self):
+        """Test that a product with pl: category passes validation."""
+        record = {
+            'product_name': [
+                {'lang': 'en', 'text': 'Test Product'}
+            ],
+            'categories': 'en:spreads,pl:czekolada,fr:chocolat'
+        }
+        assert is_valid_product(record) == True
+    
+    def test_valid_product_with_uppercase_PL_category(self):
+        """Test that a product with uppercase PL: category passes validation."""
+        record = {
+            'product_name': [
+                {'lang': 'en', 'text': 'Test Product'}
+            ],
+            'categories': 'en:spreads,PL:masło,fr:beurre'
+        }
+        assert is_valid_product(record) == True
+    
+    def test_valid_product_with_only_pl_categories(self):
+        """Test that a product with only pl: categories passes validation."""
+        record = {
+            'product_name': [
+                {'lang': 'en', 'text': 'Test Product'}
+            ],
+            'categories': 'pl:jedzenie,pl:czekolada'
+        }
+        assert is_valid_product(record) == True
+    
+    def test_invalid_product_all_non_pl_categories_have_colons(self):
+        """Test that a product with only non-pl colon categories fails validation."""
+        record = {
+            'product_name': [
+                {'lang': 'en', 'text': 'Test Product'}
+            ],
+            'categories': 'en:spreads,fr:pates-a-tartiner,de:brotaufstriche,es:untables'
+        }
+        assert is_valid_product(record) == False

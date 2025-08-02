@@ -275,10 +275,17 @@ def compute_given_name(document: Dict[str, Any]) -> str:
         else:
             category_list = [cat.strip() for cat in categories.split(',') if cat.strip()]
         
-        # Search from last to first for category without ":"
+        # Search from last to first for category without ":" or "pl:" prefixed
         for category in reversed(category_list):
-            if category and ':' not in category:
-                return category
+            if category:
+                # Check if category starts with "pl:" (case insensitive)
+                if category.lower().startswith('pl:'):
+                    pl_category = category[3:]  # Remove "pl:" prefix
+                    if pl_category:  # Only return if non-empty after prefix removal
+                        return pl_category
+                # Otherwise, only return if no colon present
+                elif ':' not in category:
+                    return category
     
     # If no suitable category found, try product_names
     product_name_data = document.get('product_name', [])
