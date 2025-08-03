@@ -274,6 +274,10 @@ def download_from_huggingface():
             else:
                 print("Warning: Failed to process products to Pinecone")
         
+        # Store categories in separate collection if MongoDB is enabled
+        if save_to_mongo and collection is not None:
+            store_categories_collection(client.get_database(), unique_last_categories)
+        
         # Close MongoDB connection if it was opened
         if client:
             client.close()
@@ -331,6 +335,91 @@ def save_unique_last_categories_to_json(unique_last_categories: dict) -> None:
         print(f"Unique last categories ({len(unique_last_categories)} items) saved to '{filename}'")
     except Exception as e:
         print(f"Error saving unique last categories: {e}")
+
+
+def store_categories_collection(db, unique_last_categories: dict) -> None:
+    """
+    Store valid unique categories into separate "categories" collection.
+    
+    Structure: {
+        "_id": ObjectId,
+        "name": "Chocolate Spreads", 
+        "ancestors": ["Food", "Spreads"]
+    }
+    
+    Before storing, checks if standard index on "name" exists, if not - creates it.
+    
+    Args:
+        db: MongoDB database instance
+        unique_last_categories: Dictionary mapping last category to full path
+    """
+    try:
+        collection = db['categories']
+        print(f"\nProcessing categories collection...")
+        
+        # Check if index on "name" exists, create if not
+        existing_indexes = list(collection.list_indexes())
+        name_index_exists = any(
+            'name' in index.get('key', {}) 
+            for index in existing_indexes
+        )
+        
+        if not name_index_exists:
+            print("Creating index on 'name' field...")
+            collection.create_index('name')
+            print("Index on 'name' field created successfully")
+        else:
+            print("Index on 'name' field already exists")
+        
+        # Process each category mapping
+        categories_processed = 0
+        categories_updated = 0
+        
+        for category_name, full_path in unique_last_categories.items():
+            if not category_name or not full_path:
+                continue
+                
+            # Parse the full path to extract ancestors
+            # Example: "Food > Spreads > Chocolate Spreads" -> ancestors: ["Food", "Spreads"]
+            path_parts = [part.strip() for part in full_path.split(' > ') if part.strip()]
+            
+            # The ancestors are all parts except the last one (which is the category name itself)
+            ancestors = path_parts[:-1] if len(path_parts) > 1 else []
+            
+            # Verify the last part matches the category name
+            if path_parts and path_parts[-1] != category_name:
+                print(f"Warning: Category name mismatch: '{category_name}' vs '{path_parts[-1]}' in path '{full_path}'")
+                continue
+            
+            # Create category document
+            category_doc = {
+                'name': category_name,
+                'ancestors': ancestors
+            }
+            
+            # Upsert the category (update if exists, insert if not)
+            result = collection.replace_one(
+                {'name': category_name}, 
+                category_doc, 
+                upsert=True
+            )
+            
+            categories_processed += 1
+            if result.upserted_id:
+                categories_updated += 1
+                if categories_processed <= 5:  # Log first 5 for debugging
+                    print(f"  Inserted category: '{category_name}' with ancestors: {ancestors}")
+            else:
+                if categories_processed <= 5:  # Log first 5 for debugging
+                    print(f"  Updated category: '{category_name}' with ancestors: {ancestors}")
+        
+        print(f"Categories collection processing complete:")
+        print(f"  Total categories processed: {categories_processed}")
+        print(f"  New categories inserted: {categories_updated}")
+        print(f"  Existing categories updated: {categories_processed - categories_updated}")
+        
+    except Exception as e:
+        print(f"Error storing categories collection: {e}")
 
 
 
