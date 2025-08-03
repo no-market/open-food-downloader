@@ -153,7 +153,6 @@ Search results are saved as JSON files with the following structure:
 - `huggingface_hub>=0.33.0` - Hugging Face Hub integration
 - `requests>=2.32.0` - HTTP requests
 - `pymongo>=4.0.0` - MongoDB connectivity
-- `sentence-transformers>=2.2.0` - For text processing and analysis
 
 ## Error Handling
 
