@@ -19,7 +19,6 @@ from datetime import datetime
 from typing import Dict, Any, List
 
 from utils import format_search_string, compute_rapidfuzz_score, extract_product_names, compute_given_name
-from pinecone_integration import search_pinecone
 
 
 
@@ -83,7 +82,7 @@ def apply_rapidfuzz_scoring(search_string: str, results: List[Dict[str, Any]]) -
 
 def search_products(search_string: str) -> Dict[str, Any]:
     """
-    Main search function that performs both MongoDB and Pinecone searches.
+    Main search function that performs MongoDB searches.
     
     Args:
         search_string: The input search string
@@ -136,10 +135,6 @@ def search_products(search_string: str) -> Dict[str, Any]:
         for result in direct_results_with_rapidfuzz:
             result['given_name'] = compute_given_name(result)
         
-        # Perform Pinecone search
-        print("Performing Pinecone search...")
-        pinecone_results = search_pinecone(search_string, top_k=10)
-        
         # Prepare results
         results = {
             "timestamp": datetime.now().isoformat(),
@@ -152,10 +147,6 @@ def search_products(search_string: str) -> Dict[str, Any]:
             "rapidfuzz_search": {
                 "count": len(direct_results_with_rapidfuzz),
                 "results": direct_results_with_rapidfuzz
-            },
-            "pinecone_search": {
-                "count": len(pinecone_results),
-                "results": pinecone_results
             }
         }
         
@@ -164,7 +155,6 @@ def search_products(search_string: str) -> Dict[str, Any]:
         
         print(f"Direct search found {len(direct_results)} results")
         print(f"RapidFuzz scoring applied to {len(direct_results_with_rapidfuzz)} results")
-        print(f"Pinecone search found {len(pinecone_results)} results")
         
         return results
         
@@ -242,7 +232,6 @@ def main():
     print(f"- Formatted input: '{results['formatted_string']}'")
     print(f"- Direct search: {results['direct_search']['count']} results")
     print(f"- RapidFuzz search: {results['rapidfuzz_search']['count']} results")
-    print(f"- Pinecone search: {results['pinecone_search']['count']} results")
     print(f"- Results saved to: {output_file}")
     
     # Print top 10 direct search results
@@ -297,43 +286,6 @@ def main():
             print(f"     Labels: {', '.join(labels) if labels else 'N/A'}")
             print(f"     Text: {result.get('search_string', '')}")
             print()
-    
-    # Print top 10 Pinecone results
-    if results['pinecone_search']['results']:
-        print("\nTop 10 Pinecone search results (Semantic similarity scoring):")
-        for i, result in enumerate(results['pinecone_search']['results'][:10]):
-            score = result.get('score', 0)
-            result_id = result.get('id', 'Unknown')
-            given_name = result.get('given_name', 'N/A')
-            text = result.get('text', 'N/A')
-            
-            print(f"  {i+1}. Pinecone Score: {score:.4f} - ID: {result_id}")
-            print(f"     Given Name: {given_name}")
-            print(f"     Text: {text}")
-            
-            # Display additional product metadata if available
-            metadata = result.get('metadata', {})
-            if 'product_names' in metadata:
-                # This is a product result
-                product_names = metadata.get('product_names', [])
-                quantity = metadata.get('quantity', '')
-                brands = metadata.get('brands', '')
-                categories = metadata.get('categories', [])
-                labels = metadata.get('labels', [])
-                
-                if product_names:
-                    print(f"     Product Names: {', '.join(product_names)}")
-                if quantity:
-                    print(f"     Quantity: {quantity}")
-                if brands:
-                    print(f"     Brands: {brands}")
-                if categories:
-                    print(f"     Categories: {', '.join(categories) if isinstance(categories, list) else categories}")
-                if labels:
-                    print(f"     Labels: {', '.join(labels) if isinstance(labels, list) else labels}")
-            
-            print()
-
 
 if __name__ == "__main__":
     main()

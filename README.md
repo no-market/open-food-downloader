@@ -8,7 +8,6 @@ A Python project to download and search food product records from the OpenFoodFa
 - Downloads food product records from the [OpenFoodFacts dataset](https://huggingface.co/datasets/openfoodfacts/product-database) on Hugging Face
 - Stores product data directly in MongoDB in real-time (no intermediate mapping)
 - Configurable MongoDB connection via environment variable
-- **NEW**: Embeds product categories using SentenceTransformers and stores them in Pinecone for semantic search
 - Includes fallback mock data for testing when internet access is not available
 - GitHub Actions workflow for manual execution
 
@@ -40,20 +39,10 @@ Set the MongoDB connection URI using the environment variable:
 
 Optional environment variables:
 - `SAVE_TO_MONGO` - Set to `false` to disable MongoDB storage (default: `true`)
-- `SAVE_TO_PINECONE` - Set to `true` to enable Pinecone category embedding storage (default: `false`)
-
-#### Pinecone Configuration
-
-When `SAVE_TO_PINECONE=true`, the following environment variables are required:
-- `PINECONE_API_KEY` - Your Pinecone API key
-- `PINECONE_INDEX_NAME` - The name of your Pinecone index (default: `product-categories`)
 
 Example:
 ```bash
 export MONGO_URI="mongodb://localhost:27017/openfooddb"
-export SAVE_TO_PINECONE="true"
-export PINECONE_API_KEY="your-pinecone-api-key"
-export PINECONE_INDEX_NAME="product-categories"
 # or for MongoDB Atlas:
 export MONGO_URI="mongodb+srv://user:password@cluster.mongodb.net/openfooddb"
 ```
@@ -164,8 +153,7 @@ Search results are saved as JSON files with the following structure:
 - `huggingface_hub>=0.33.0` - Hugging Face Hub integration
 - `requests>=2.32.0` - HTTP requests
 - `pymongo>=4.0.0` - MongoDB connectivity
-- `sentence-transformers>=2.2.0` - For creating category embeddings (optional, required for Pinecone)
-- `pinecone>=3.0.0` - Pinecone vector database integration (optional)
+- `sentence-transformers>=2.2.0` - For text processing and analysis
 
 ## Error Handling
 
