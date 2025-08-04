@@ -46,10 +46,14 @@ jobs:
       run: make install
         
     - name: Run tests
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       run: make test
         
     - name: Generate test report
       if: always()
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       run: |
         echo "## 🧪 Test Results - Python ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
@@ -63,6 +67,13 @@ jobs:
         
         echo "🐍 **Python Version**: ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY
         echo "⏰ **Timestamp**: $(date -u)" >> $GITHUB_STEP_SUMMARY
+        
+        # Add OpenAI integration status
+        if [ -n "$OPENAI_API_KEY" ]; then
+          echo "🤖 **OpenAI Integration**: Enabled (API key available)" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "🤖 **OpenAI Integration**: Disabled (API key not set - tests use mocked functionality)" >> $GITHUB_STEP_SUMMARY
+        fi
         
   lint:
     name: Code Quality Check

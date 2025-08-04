@@ -41,10 +41,16 @@ jobs:
     - name: Search products catalog
       env:
         MONGO_URI: ${{ secrets.MONGO_URI }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       run: |
         echo "🔍 Starting product search..."
         echo "Search string: '${{ github.event.inputs.search_string }}'"
         echo "Description: ${{ github.event.inputs.description }}"
+        if [ -n "$OPENAI_API_KEY" ]; then
+          echo "🤖 OpenAI integration: Enabled"
+        else
+          echo "🤖 OpenAI integration: Disabled (no API key)"
+        fi
         echo ""
         
         # Activate virtual environment and run search
@@ -90,6 +96,16 @@ jobs:
             WORD_COUNT=$(jq -r '.word_search.count // 0' "$RESULT_FILE" 2>/dev/null || echo "0")
             echo "  - **Direct Search Results**: $DIRECT_COUNT products found" >> $GITHUB_STEP_SUMMARY
             echo "  - **Word-based Search Results**: $WORD_COUNT products found" >> $GITHUB_STEP_SUMMARY
+            
+            # Check for OpenAI results
+            if jq -e '.openai_gpt35' "$RESULT_FILE" > /dev/null 2>&1; then
+              GPT35_DECISION=$(jq -r '.openai_gpt35.decision // "unknown"' "$RESULT_FILE" 2>/dev/null || echo "unknown")
+              GPT4_DECISION=$(jq -r '.openai_gpt4.decision // "unknown"' "$RESULT_FILE" 2>/dev/null || echo "unknown")
+              echo "  - **🤖 GPT-3.5 Analysis**: $GPT35_DECISION" >> $GITHUB_STEP_SUMMARY
+              echo "  - **🤖 GPT-4 Analysis**: $GPT4_DECISION" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "  - **🤖 OpenAI Integration**: Not used (high scores or no API key)" >> $GITHUB_STEP_SUMMARY
+            fi
           fi
         else
           echo "❌ **Status**: Search failed - no results file generated" >> $GITHUB_STEP_SUMMARY
