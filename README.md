@@ -20,6 +20,12 @@ A Python project to download and search food product records from the OpenFoodFa
   - Converts to lowercase
   - Keeps spaces as separators
 - Results include relevance scores from MongoDB's text search
+- RapidFuzz scoring for improved relevance ranking
+- **OpenAI assistance** for challenging queries:
+  - Two-stage GPT-3.5 and GPT-4 processing when RapidFuzz scores are low (< 50)
+  - Intelligent query rephrasing and product recognition
+  - Decision outputs: `valid_product`, `rephrased_successfully`, `not_a_product`, `no_match_found`
+  - Requires `OPENAI_API_KEY` environment variable
 - Output saved to JSON files with timestamps and formatted input
 - Command-line interface with flexible arguments
 - GitHub Actions workflow for manual search triggers
@@ -39,6 +45,7 @@ Set the MongoDB connection URI using the environment variable:
 
 Optional environment variables:
 - `SAVE_TO_MONGO` - Set to `false` to disable MongoDB storage (default: `true`)
+- `OPENAI_API_KEY` - OpenAI API key for enhanced search assistance (optional)
 
 Example:
 ```bash
@@ -63,6 +70,12 @@ python3 download_products.py
 
 #### Search Products
 ```bash
+# Set MongoDB URI
+export MONGO_URI="mongodb://localhost:27017/openfooddb"
+
+# Optional: Set OpenAI API key for enhanced search
+export OPENAI_API_KEY="your-openai-api-key"
+
 # Search products (requires MongoDB with existing data)
 python3 search_products.py "chocolate cookies"
 
@@ -79,6 +92,9 @@ make install
 # Set MongoDB URI
 export MONGO_URI="mongodb://localhost:27017/openfooddb"
 
+# Optional: Set OpenAI API key for enhanced search
+export OPENAI_API_KEY="your-openai-api-key"
+
 # Run the downloader
 make run
 
@@ -89,8 +105,9 @@ make search SEARCH_STRING='chocolate cookies'
 ### Local development with .env file
 
 ```bash
-# Create .env file with your MongoDB URI
+# Create .env file with your MongoDB URI and optional OpenAI key
 echo "MONGO_URI=mongodb://localhost:27017/openfooddb" > .env
+echo "OPENAI_API_KEY=your-openai-api-key" >> .env
 
 # Run downloader with local environment
 make run-local
@@ -116,7 +133,7 @@ The repository includes GitHub Action workflows:
 4. Enter your search string (e.g., "chocolate cookies")
 5. Optionally add a description for the search
 
-Note: For GitHub Actions, you'll need to set the `MONGO_URI` as a repository secret.
+Note: For GitHub Actions, you'll need to set both `MONGO_URI` and optionally `OPENAI_API_KEY` as repository secrets.
 
 ## Data Storage
 
@@ -143,6 +160,24 @@ Search results are saved as JSON files with the following structure:
   "direct_search": {
     "count": 15,
     "results": [...]
+  },
+  "rapidfuzz_search": {
+    "count": 15,
+    "results": [...]
+  },
+  "openai_gpt35": {
+    "model": "gpt-3.5-turbo",
+    "decision": "rephrased_successfully",
+    "rephrased_query": "blueberry american 500g",
+    "confidence": 0.85,
+    "reasoning": "Recognized Polish product name..."
+  },
+  "openai_gpt4": {
+    "model": "gpt-4",
+    "decision": "valid_product", 
+    "rephrased_query": "american blueberry 500 grams",
+    "confidence": 0.92,
+    "reasoning": "Enhanced analysis..."
   }
 }
 ```
@@ -153,12 +188,16 @@ Search results are saved as JSON files with the following structure:
 - `huggingface_hub>=0.33.0` - Hugging Face Hub integration
 - `requests>=2.32.0` - HTTP requests
 - `pymongo>=4.0.0` - MongoDB connectivity
+- `rapidfuzz>=3.0.0` - Text similarity scoring
+- `openai>=1.0.0` - OpenAI API for enhanced search assistance
 
 ## Error Handling
 
 The project includes robust error handling for:
 - Missing MongoDB URI environment variable
+- Missing OpenAI API key (graceful degradation)
 - MongoDB connection failures
+- OpenAI API call failures
 - Individual document insertion errors (continues processing)
 - Network connectivity issues
 - Empty search strings
