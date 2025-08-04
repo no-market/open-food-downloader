@@ -16,6 +16,7 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple
 
 from search_products import search_products
+from openai_assistant import process_openai_assistance
 
 
 def display_csv_as_table(csv_file_path: str, max_rows: int = 200, max_col_width: int = 30) -> bool:
@@ -311,6 +312,94 @@ def format_csv_row(product_num: int, search_type: str, input_string: str, result
     ]
 
 
+def format_openai_csv_row(product_num: int, search_type: str, input_string: str, openai_result) -> List[str]:
+    """
+    Format a single CSV row from OpenAI result.
+    
+    Args:
+        product_num: Product number (1, 2, 3, etc.)
+        search_type: 'gpt-3.5' or 'gpt-4'
+        input_string: Original input search string
+        openai_result: OpenAI result dictionary or None
+        
+    Returns:
+        List of strings for CSV row: [Number, Input string, Given Name, Score, ID, Categories, Product Names]
+    """
+    if not openai_result:
+        return [f"{product_num}.{search_type}", input_string, "", "0", "", "", ""]
+    
+    # For OpenAI results, we use decision as "given name" and confidence as score
+    decision = openai_result.get('decision', 'no_match_found')
+    confidence = openai_result.get('confidence', 0.0)
+    rephrased_query = openai_result.get('rephrased_query', '')
+    reasoning = openai_result.get('reasoning', '')
+    
+    # Format the result to show decision and rephrased query if available
+    given_name = decision
+    if rephrased_query:
+        given_name = f"{decision}: {rephrased_query}"
+    
+    return [
+        f"{product_num}.{search_type}",
+        input_string,
+        given_name,
+        f"{confidence * 100:.1f}",  # Convert to percentage
+        "AI",  # ID field shows this is AI result
+        reasoning[:50] + "..." if len(reasoning) > 50 else reasoning,  # Categories field shows reasoning
+        rephrased_query or ""  # Product names field shows rephrased query
+    ]
+    """
+    Format a single CSV row from search result.
+    
+    Args:
+        product_num: Product number (1, 2, 3, etc.)
+        search_type: 'Mongo' or 'Fuzzy'
+        input_string: Original input search string
+        result: Search result dictionary or None
+        
+    Returns:
+        List of strings for CSV row: [Number, Input string, Given Name, Score, ID, Categories, Product Names]
+    """
+    if not result:
+        return [f"{product_num}.{search_type}", input_string, "", "0", "", "", ""]
+    
+    # Extract required fields
+    given_name = result.get('given_name', '')
+    product_id = result.get('_id', '')
+    
+    # Get score based on search type
+    if search_type == 'Mongo':
+        score = result.get('score', 0)
+    else:  # Fuzzy
+        score = result.get('rapidfuzz_score', 0)
+    
+    # Extract categories field
+    categories = result.get('categories', '')
+    
+    # Extract product names from product_name array
+    product_names = []
+    product_name_array = result.get('product_name', [])
+    if isinstance(product_name_array, list):
+        for item in product_name_array:
+            if isinstance(item, dict) and 'text' in item:
+                text = item['text']
+                if text and text.strip():
+                    product_names.append(text.strip())
+    
+    # Join product names with semicolon separator
+    product_names_str = '; '.join(product_names) if product_names else ''
+    
+    return [
+        f"{product_num}.{search_type}",
+        input_string,
+        given_name,
+        f"{score:.2f}",
+        str(product_id),
+        categories,
+        product_names_str
+    ]
+
+
 def search_batch_products(batch_file: str = "batch.txt", output_file: str = None) -> str:
     """
     Main function to search multiple products and generate CSV output.
@@ -363,9 +452,20 @@ def search_batch_products(batch_file: str = "batch.txt", output_file: str = None
         print(f"  MongoDB top score: {mongo_score:.2f}")
         print(f"  RapidFuzz top score: {fuzzy_score:.2f}")
         
-        # Add CSV rows (Mongo first, then Fuzzy)
+        # Add CSV rows (Mongo, Fuzzy, then OpenAI if available)
         csv_rows.append(format_csv_row(i, "Mongo", product_name, top_mongo))
         csv_rows.append(format_csv_row(i, "Fuzzy", product_name, top_rapidfuzz))
+        
+        # Add OpenAI results if available
+        if 'openai_gpt35' in search_results:
+            gpt35_result = search_results['openai_gpt35']
+            csv_rows.append(format_openai_csv_row(i, "gpt-3.5", product_name, gpt35_result))
+            print(f"  GPT-3.5 decision: {gpt35_result.get('decision', 'unknown')}")
+        
+        if 'openai_gpt4' in search_results:
+            gpt4_result = search_results['openai_gpt4']
+            csv_rows.append(format_openai_csv_row(i, "gpt-4", product_name, gpt4_result))
+            print(f"  GPT-4 decision: {gpt4_result.get('decision', 'unknown')}")
     
     # Write CSV file
     try:
@@ -419,7 +519,7 @@ def main():
     print(f"- Input file: {args.batch}")
     print(f"- Output file: {output_file}")
     print("- Format: CSV with columns: Number, Input string, Given Name, Score, ID, Categories, Product Names")
-    print("- Each product has 2 rows: N.Mongo and N.Fuzzy results")
+    print("- Each product has 2-4 rows: N.Mongo, N.Fuzzy, N.gpt-3.5 (if triggered), N.gpt-4 (if triggered)")
 
 
 if __name__ == "__main__":

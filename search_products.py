@@ -19,6 +19,7 @@ from datetime import datetime
 from typing import Dict, Any, List
 
 from utils import format_search_string, compute_rapidfuzz_score, extract_product_names, compute_given_name
+from openai_assistant import process_openai_assistance
 
 
 
@@ -135,6 +136,10 @@ def search_products(search_string: str) -> Dict[str, Any]:
         for result in direct_results_with_rapidfuzz:
             result['given_name'] = compute_given_name(result)
         
+        # Process OpenAI assistance if needed
+        print("Checking if OpenAI assistance is needed...")
+        gpt35_result, gpt4_result = process_openai_assistance(search_string, direct_results_with_rapidfuzz)
+        
         # Prepare results
         results = {
             "timestamp": datetime.now().isoformat(),
@@ -150,11 +155,43 @@ def search_products(search_string: str) -> Dict[str, Any]:
             }
         }
         
+        # Add OpenAI results if available
+        if gpt35_result:
+            results["openai_gpt35"] = {
+                "model": gpt35_result.model,
+                "decision": gpt35_result.decision,
+                "rephrased_query": gpt35_result.rephrased_query,
+                "confidence": gpt35_result.confidence,
+                "reasoning": gpt35_result.reasoning,
+                "error": gpt35_result.error
+            }
+        
+        if gpt4_result:
+            results["openai_gpt4"] = {
+                "model": gpt4_result.model,
+                "decision": gpt4_result.decision,
+                "rephrased_query": gpt4_result.rephrased_query,
+                "confidence": gpt4_result.confidence,
+                "reasoning": gpt4_result.reasoning,
+                "error": gpt4_result.error
+            }
+        
         # Close MongoDB connection
         client.close()
         
         print(f"Direct search found {len(direct_results)} results")
         print(f"RapidFuzz scoring applied to {len(direct_results_with_rapidfuzz)} results")
+        
+        # Log OpenAI results
+        if gpt35_result:
+            print(f"GPT-3.5 decision: {gpt35_result.decision}")
+            if gpt35_result.rephrased_query:
+                print(f"GPT-3.5 suggested query: '{gpt35_result.rephrased_query}'")
+        
+        if gpt4_result:
+            print(f"GPT-4 decision: {gpt4_result.decision}")
+            if gpt4_result.rephrased_query:
+                print(f"GPT-4 suggested query: '{gpt4_result.rephrased_query}'")
         
         return results
         
@@ -232,6 +269,20 @@ def main():
     print(f"- Formatted input: '{results['formatted_string']}'")
     print(f"- Direct search: {results['direct_search']['count']} results")
     print(f"- RapidFuzz search: {results['rapidfuzz_search']['count']} results")
+    
+    # Print OpenAI summary
+    if 'openai_gpt35' in results:
+        gpt35 = results['openai_gpt35']
+        print(f"- GPT-3.5 decision: {gpt35['decision']}")
+        if gpt35.get('rephrased_query'):
+            print(f"  Suggested query: '{gpt35['rephrased_query']}'")
+    
+    if 'openai_gpt4' in results:
+        gpt4 = results['openai_gpt4']
+        print(f"- GPT-4 decision: {gpt4['decision']}")
+        if gpt4.get('rephrased_query'):
+            print(f"  Suggested query: '{gpt4['rephrased_query']}'")
+    
     print(f"- Results saved to: {output_file}")
     
     # Print top 10 direct search results
