@@ -10,8 +10,8 @@ from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass
 
 # Model name constants - configurable
-GPT_3_5_MODEL = "gpt-3.5-turbo"
-GPT_4_MODEL = "gpt-4"
+LEVEL_1_MODEL = "gpt-3.5-turbo"
+LEVEL_2_MODEL = "gpt-4"
 
 # Score threshold to trigger OpenAI assistance
 SCORE_THRESHOLD = 50.0
@@ -77,7 +77,7 @@ class OpenAIAssistant:
         """
         if not self.client:
             return OpenAIResult(
-                model=GPT_3_5_MODEL,
+                model=LEVEL_1_MODEL,
                 decision="no_match_found",
                 error="OpenAI client not available"
             )
@@ -91,7 +91,7 @@ class OpenAIAssistant:
             
             # Call GPT-3.5
             response = self.client.chat.completions.create(
-                model=GPT_3_5_MODEL,
+                model=LEVEL_1_MODEL,
                 messages=[
                     {"role": "system", "content": "You are a food product search assistant that helps analyze and improve product search queries."},
                     {"role": "user", "content": prompt}
@@ -105,7 +105,7 @@ class OpenAIAssistant:
             
         except Exception as e:
             return OpenAIResult(
-                model=GPT_3_5_MODEL,
+                model=LEVEL_1_MODEL,
                 decision="no_match_found",
                 error=f"GPT-3.5 error: {str(e)}"
             )
@@ -125,7 +125,7 @@ class OpenAIAssistant:
         """
         if not self.client:
             return OpenAIResult(
-                model=GPT_4_MODEL,
+                model=LEVEL_2_MODEL,
                 decision="no_match_found",
                 error="OpenAI client not available"
             )
@@ -139,7 +139,7 @@ class OpenAIAssistant:
             
             # Call GPT-4
             response = self.client.chat.completions.create(
-                model=GPT_4_MODEL,
+                model=LEVEL_2_MODEL,
                 messages=[
                     {"role": "system", "content": "You are an advanced food product search assistant with deep knowledge of food products, brands, and multilingual product names."},
                     {"role": "user", "content": prompt}
@@ -153,7 +153,7 @@ class OpenAIAssistant:
             
         except Exception as e:
             return OpenAIResult(
-                model=GPT_4_MODEL,
+                model=LEVEL_2_MODEL,
                 decision="no_match_found",
                 error=f"GPT-4 error: {str(e)}"
             )
@@ -262,7 +262,7 @@ Be more sophisticated than the initial analysis and provide the best possible se
                 data = json.loads(json_match.group())
                 
                 return OpenAIResult(
-                    model=GPT_3_5_MODEL,
+                    model=LEVEL_1_MODEL,
                     decision=data.get('decision', 'no_match_found'),
                     rephrased_query=data.get('rephrased_query'),
                     confidence=float(data.get('confidence', 0.0)),
@@ -281,14 +281,14 @@ Be more sophisticated than the initial analysis and provide the best possible se
                     decision = 'no_match_found'
                 
                 return OpenAIResult(
-                    model=GPT_3_5_MODEL,
+                    model=LEVEL_1_MODEL,
                     decision=decision,
                     reasoning=content[:200] + "..." if len(content) > 200 else content
                 )
                 
         except Exception as e:
             return OpenAIResult(
-                model=GPT_3_5_MODEL,
+                model=LEVEL_1_MODEL,
                 decision="no_match_found",
                 error=f"Failed to parse GPT-3.5 response: {str(e)}"
             )
@@ -305,7 +305,7 @@ Be more sophisticated than the initial analysis and provide the best possible se
                 data = json.loads(json_match.group())
                 
                 return OpenAIResult(
-                    model=GPT_4_MODEL,
+                    model=LEVEL_2_MODEL,
                     decision=data.get('decision', 'no_match_found'),
                     rephrased_query=data.get('rephrased_query'),
                     confidence=float(data.get('confidence', 0.0)),
@@ -324,14 +324,14 @@ Be more sophisticated than the initial analysis and provide the best possible se
                     decision = 'no_match_found'
                 
                 return OpenAIResult(
-                    model=GPT_4_MODEL,
+                    model=LEVEL_2_MODEL,
                     decision=decision,
                     reasoning=content[:200] + "..." if len(content) > 200 else content
                 )
                 
         except Exception as e:
             return OpenAIResult(
-                model=GPT_4_MODEL,
+                model=LEVEL_2_MODEL,
                 decision="no_match_found",
                 error=f"Failed to parse GPT-4 response: {str(e)}"
             )
