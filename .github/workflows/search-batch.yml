@@ -56,7 +56,6 @@ jobs:
     - name: Search products batch
       env:
         MONGO_URI: ${{ secrets.MONGO_URI }}
-        PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
       run: |
         echo "🔍 Starting batch product search..."
         echo "Batch file: '${{ github.event.inputs.batch_file }}'"

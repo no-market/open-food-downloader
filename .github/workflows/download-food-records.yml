@@ -16,14 +16,6 @@ on:
         options:
           - 'true'
           - 'false'
-      save_to_pinecone:
-        description: 'Save categories to Pinecone'
-        required: false
-        default: 'true'
-        type: choice
-        options:
-          - 'true'
-          - 'false'
 
 jobs:
   download-food-records:
@@ -54,19 +46,12 @@ jobs:
       env:
         MONGO_URI: ${{ secrets.MONGO_URI }}
         SAVE_TO_MONGO: ${{ inputs.save_to_mongo || 'true' }}
-        PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
-        SAVE_TO_PINECONE: ${{ inputs.save_to_pinecone || 'false' }}
       run: |
         echo "🚀 Starting food records download..."
         if [ "$SAVE_TO_MONGO" = "true" ]; then
           echo "📊 MongoDB storage: ENABLED"
         else
           echo "📊 MongoDB storage: DISABLED"
-        fi
-        if [ "$SAVE_TO_PINECONE" = "true" ]; then
-          echo "🧠 Pinecone storage: ENABLED"
-        else
-          echo "🧠 Pinecone storage: DISABLED"
         fi
         make run
         echo "✅ Food records download completed!"
@@ -96,11 +81,6 @@ jobs:
           echo "💾 **MongoDB Storage**: ENABLED" >> $GITHUB_STEP_SUMMARY
         else
           echo "💾 **MongoDB Storage**: DISABLED" >> $GITHUB_STEP_SUMMARY
-        fi
-        if [ "${{ inputs.save_to_pinecone || 'false' }}" = "true" ]; then
-          echo "🧠 **Pinecone Storage**: ENABLED" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "🧠 **Pinecone Storage**: DISABLED" >> $GITHUB_STEP_SUMMARY
         fi
         echo "🔗 **Source**: OpenFoodFacts dataset via Hugging Face" >> $GITHUB_STEP_SUMMARY
         echo "📁 **Artifacts**: All outputs saved as 'food-data-outputs' artifact" >> $GITHUB_STEP_SUMMARY
