@@ -1,0 +1,53 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Search Products (Local)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/search_products.py",
+            "args": ["${input:searchString}"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "envFile": "${workspaceFolder}/.env",
+            "python": "${workspaceFolder}/venv/bin/python",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
+        },
+        {
+            "name": "Search Batch (Local)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/search_batch.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "envFile": "${workspaceFolder}/.env",
+            "python": "${workspaceFolder}/venv/bin/python",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
+        },
+        {
+            "name": "Download Products (Local)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/download_products.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "envFile": "${workspaceFolder}/.env",
+            "python": "${workspaceFolder}/venv/bin/python",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "searchString",
+            "description": "Enter search term",
+            "default": "",
+            "type": "promptString"
+        }
+    ]
+}
