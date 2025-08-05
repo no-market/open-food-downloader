@@ -20,12 +20,12 @@ def test_score_threshold_logic():
     assistant = OpenAIAssistant()
     
     # High score should not trigger OpenAI
-    assert not assistant.should_use_openai(80.0)
-    print(f"✓ Score 80.0 correctly does not trigger OpenAI (threshold: {SCORE_THRESHOLD})")
+    assert not assistant.should_use_openai(600.0)
+    print(f"✓ Score 600.0 correctly does not trigger OpenAI (threshold: {SCORE_THRESHOLD})")
     
     # Low score should trigger OpenAI
-    assert assistant.should_use_openai(30.0)
-    print(f"✓ Score 30.0 correctly triggers OpenAI (threshold: {SCORE_THRESHOLD})")
+    assert assistant.should_use_openai(300.0)
+    print(f"✓ Score 300.0 correctly triggers OpenAI (threshold: {SCORE_THRESHOLD})")
 
 
 def test_assistant_methods_exist():

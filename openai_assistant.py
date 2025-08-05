@@ -16,7 +16,7 @@ LEVEL_1_MODEL = "gpt-3.5-turbo"
 LEVEL_2_MODEL = "gpt-4"
 
 # Score threshold to trigger OpenAI assistance
-SCORE_THRESHOLD = 55.0
+SCORE_THRESHOLD = 550.0
 
 
 @dataclass
