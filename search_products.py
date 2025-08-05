@@ -138,7 +138,9 @@ def search_products(search_string: str) -> Dict[str, Any]:
         
         # Process OpenAI assistance if needed
         print("Checking if OpenAI assistance is needed...")
-        level1_result, level2_result = process_openai_assistance(search_string, direct_results_with_rapidfuzz)
+        from openai_assistant import create_research_function
+        research_function = create_research_function(collection)
+        level1_result, level2_result = process_openai_assistance(search_string, direct_results_with_rapidfuzz, research_function)
         
         # Prepare results
         results = {
