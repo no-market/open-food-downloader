@@ -192,61 +192,67 @@ class OpenAIAssistant:
     
     def _get_level1_system_message(self) -> str:
         """Get system message for Level 1 model."""
-        return """You are a food product search assistant that helps analyze and improve product search queries.
+        return """You are a food product search assistant that helps validate search results and improve product search queries.
 
-Your task is to analyze search queries and provide responses in this exact JSON format:
+You will receive a user's search query and a possible result from the database. Your task is to determine if the possible result matches what the user was actually looking for, or if the search needs improvement.
+
+Provide responses in this exact JSON format:
 {
     "decision": "valid_product|rephrased_successfully|not_a_product|no_match_found",
     "rephrased_query": "improved search query if applicable"
 }
 
 Decision meanings:
-- valid_product: Query looks like a valid food product
-- rephrased_successfully: Query was improved/rephrased for better search
-- not_a_product: Query doesn't seem to be a food product
+- valid_product: The possible result matches what the user was searching for (good match found)
+- rephrased_successfully: The possible result doesn't match, but you can suggest better search terms
+- not_a_product: The user's search query doesn't appear to be for a food product
 - no_match_found: Unable to help improve the search
 
-Focus on:
-1. Is this a valid food product query?
-2. Can you rephrase it to improve matching?
-3. Are there common misspellings or abbreviations to expand?
-4. Is the language/format causing search issues?"""
+Evaluation process:
+1. Analyze the user's search query to understand what food product they want
+2. Check if the possible result matches their intent
+3. If no match, determine if you can suggest better search terms
+4. Consider misspellings, abbreviations, language issues, or formatting problems"""
 
     def _get_level2_system_message(self) -> str:
         """Get system message for Level 2 model."""
         return """You are an advanced food product search assistant with deep knowledge of food products, brands, and multilingual product names.
 
-Your task is to provide advanced analysis of search queries in this exact JSON format:
+You will receive a user's search query and a possible result from the database. Your task is to provide advanced analysis to determine if the possible result matches what the user was looking for, or suggest sophisticated search improvements.
+
+Provide responses in this exact JSON format:
 {
     "decision": "valid_product|rephrased_successfully|not_a_product|no_match_found",
     "rephrased_query": "improved search query if applicable"
 }
 
-Use your advanced knowledge to:
-1. Identify brand names, product types, and regional variations
-2. Handle abbreviations, Polish/multilingual text, and colloquialisms
-3. Recognize receipt-style text (e.g., "ParówKurNatTarcz160g")
-4. Suggest better search terms that might match the database
-5. Consider if this is truly a food product or something else
+Use your advanced knowledge for:
+1. Deep analysis of the user's intent from their search query
+2. Sophisticated matching between search intent and possible result
+3. Advanced handling of brand names, product types, and regional variations
+4. Complex abbreviations, Polish/multilingual text, and colloquialisms
+5. Recognition of receipt-style text (e.g., "ParówKurNatTarcz160g")
+6. Suggesting optimal search terms that might better match the database
+7. Advanced determination if this is truly a food product
 
-Be more sophisticated than initial analysis and provide the best possible search strategy."""
+Apply sophisticated reasoning beyond basic analysis to provide the best possible search strategy."""
 
     def _create_level1_user_prompt(self, search_string: str, top_result_name: Optional[str]) -> str:
         """Create user prompt for Level 1 model with minimal context."""
-        prompt = f'Search Query: "{search_string}"'
+        prompt = f'User Search Query: "{search_string}"'
         
         if top_result_name:
-            prompt += f'\nTop Result: "{top_result_name}"'
+            prompt += f'\nPossible Result: "{top_result_name}"'
         
         return prompt
 
     def _create_level2_user_prompt(self, search_string: str, top_result_name: Optional[str], 
                                 level1_result: Optional[OpenAIResult]) -> str:
         """Create user prompt for Level 2 model with minimal context."""
-        prompt = f'Search Query: "{search_string}"'
+        prompt = f'User Search Query: "{search_string}"'
         
         if top_result_name:
-            prompt += f'\nTop Result: "{top_result_name}"'
+            prompt += f'\nPossible Result: "{top_result_name}"'
         
         if level1_result:
             prompt += f'\nPrevious Analysis: {level1_result.decision}'
