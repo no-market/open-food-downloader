@@ -24,8 +24,6 @@ class OpenAIResult:
     model: str
     decision: str  # valid_product, rephrased_successfully, not_a_product, no_match_found
     rephrased_query: Optional[str] = None
-    confidence: float = 0.0
-    reasoning: str = ""
     error: Optional[str] = None
 
 
@@ -171,9 +169,7 @@ class OpenAIAssistant:
 Your task is to analyze search queries and provide responses in this exact JSON format:
 {
     "decision": "valid_product|rephrased_successfully|not_a_product|no_match_found",
-    "rephrased_query": "improved search query if applicable",
-    "confidence": 0.0-1.0,
-    "reasoning": "brief explanation of your analysis"
+    "rephrased_query": "improved search query if applicable"
 }
 
 Decision meanings:
@@ -195,9 +191,7 @@ Focus on:
 Your task is to provide advanced analysis of search queries in this exact JSON format:
 {
     "decision": "valid_product|rephrased_successfully|not_a_product|no_match_found",
-    "rephrased_query": "improved search query if applicable",
-    "confidence": 0.0-1.0,
-    "reasoning": "detailed explanation of your analysis"
+    "rephrased_query": "improved search query if applicable"
 }
 
 Use your advanced knowledge to:
@@ -247,9 +241,7 @@ Be more sophisticated than initial analysis and provide the best possible search
                 return OpenAIResult(
                     model=LEVEL_1_MODEL,
                     decision=data.get('decision', 'no_match_found'),
-                    rephrased_query=data.get('rephrased_query'),
-                    confidence=float(data.get('confidence', 0.0)),
-                    reasoning=data.get('reasoning', '')
+                    rephrased_query=data.get('rephrased_query')
                 )
             else:
                 # Fallback: try to extract decision from text
@@ -265,8 +257,7 @@ Be more sophisticated than initial analysis and provide the best possible search
                 
                 return OpenAIResult(
                     model=LEVEL_1_MODEL,
-                    decision=decision,
-                    reasoning=content[:200] + "..." if len(content) > 200 else content
+                    decision=decision
                 )
                 
         except Exception as e:
@@ -290,9 +281,7 @@ Be more sophisticated than initial analysis and provide the best possible search
                 return OpenAIResult(
                     model=LEVEL_2_MODEL,
                     decision=data.get('decision', 'no_match_found'),
-                    rephrased_query=data.get('rephrased_query'),
-                    confidence=float(data.get('confidence', 0.0)),
-                    reasoning=data.get('reasoning', '')
+                    rephrased_query=data.get('rephrased_query')
                 )
             else:
                 # Fallback: try to extract decision from text
@@ -308,8 +297,7 @@ Be more sophisticated than initial analysis and provide the best possible search
                 
                 return OpenAIResult(
                     model=LEVEL_2_MODEL,
-                    decision=decision,
-                    reasoning=content[:200] + "..." if len(content) > 200 else content
+                    decision=decision
                 )
                 
         except Exception as e:

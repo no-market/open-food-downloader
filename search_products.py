@@ -163,8 +163,6 @@ def search_products(search_string: str) -> Dict[str, Any]:
                 "model": level1_result.model,
                 "decision": level1_result.decision,
                 "rephrased_query": level1_result.rephrased_query,
-                "confidence": level1_result.confidence,
-                "reasoning": level1_result.reasoning,
                 "error": level1_result.error
             }
         
@@ -173,8 +171,6 @@ def search_products(search_string: str) -> Dict[str, Any]:
                 "model": level2_result.model,
                 "decision": level2_result.decision,
                 "rephrased_query": level2_result.rephrased_query,
-                "confidence": level2_result.confidence,
-                "reasoning": level2_result.reasoning,
                 "error": level2_result.error
             }
         

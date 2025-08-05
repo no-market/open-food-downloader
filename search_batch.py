@@ -328,11 +328,9 @@ def format_openai_csv_row(product_num: int, search_type: str, input_string: str,
     if not openai_result:
         return [f"{product_num}.{search_type}", input_string, "", "0", "", "", ""]
     
-    # For OpenAI results, we use decision as "given name" and confidence as score
+    # For OpenAI results, we use decision as "given name" 
     decision = openai_result.get('decision', 'no_match_found')
-    confidence = openai_result.get('confidence', 0.0)
     rephrased_query = openai_result.get('rephrased_query', '')
-    reasoning = openai_result.get('reasoning', '')
     
     # Format the result to show decision and rephrased query if available
     given_name = decision
@@ -343,9 +341,9 @@ def format_openai_csv_row(product_num: int, search_type: str, input_string: str,
         f"{product_num}.{search_type}",
         input_string,
         given_name,
-        f"{confidence * 100:.1f}",  # Convert to percentage
+        "0",  # No score available for AI results
         "AI",  # ID field shows this is AI result
-        reasoning[:50] + "..." if len(reasoning) > 50 else reasoning,  # Categories field shows reasoning
+        decision,  # Categories field shows decision
         rephrased_query or ""  # Product names field shows rephrased query
     ]
     """

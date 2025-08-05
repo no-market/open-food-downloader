@@ -49,8 +49,6 @@ def test_guaranteed_low_score():
         print(f"  Error: {level1_result.error}")
         if level1_result.rephrased_query:
             print(f"  Rephrased query: {level1_result.rephrased_query}")
-        if level1_result.reasoning:
-            print(f"  Reasoning: {level1_result.reasoning}")
     else:
         print("❌ GPT-3.5 was not triggered")
     
@@ -61,8 +59,6 @@ def test_guaranteed_low_score():
         print(f"  Error: {level2_result.error}")
         if level2_result.rephrased_query:
             print(f"  Rephrased query: {level2_result.rephrased_query}")
-        if level2_result.reasoning:
-            print(f"  Reasoning: {level2_result.reasoning}")
     else:
         print("❌ GPT-4 was not triggered")
 
