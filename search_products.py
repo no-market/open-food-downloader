@@ -156,7 +156,7 @@ def search_products(search_string: str) -> Dict[str, Any]:
             
             # Check if we have good results
             if direct_results_with_rapidfuzz:
-                best_score = max(result.get('rapidfuzz_score', 0) for result in direct_results_with_rapidfuzz)
+                best_score = direct_results_with_rapidfuzz[0].get('rapidfuzz_score', 0)
                 print(f"Best RapidFuzz score: {best_score:.1f}")
                 
                 # If score is good enough, we're done
@@ -188,9 +188,24 @@ def search_products(search_string: str) -> Dict[str, Any]:
                         break
                     else:
                         print("Level 1 model could not improve the query, trying Level 2 model...")
+                        # Immediately try Level 2 model without another MongoDB query
+                        print("Using Level 2 model for advanced analysis...")
+                        level2_result = assistant.process_with_level2(current_search_string, top_result_name, level1_result)
+                        
+                        if level2_result.decision == "rephrased_successfully" and level2_result.rephrased_query:
+                            print(f"Level 2 model suggested: '{level2_result.rephrased_query}'")
+                            current_search_string = level2_result.rephrased_query
+                            current_formatted_string = format_search_string(current_search_string)
+                            continue  # Try search again with rephrased query
+                        elif level2_result.decision == "not_a_product":
+                            print("Level 2 model determined this is not a food product")
+                            break
+                        else:
+                            print("Level 2 model could not improve the query further")
+                            break
                 
-                # Try Level 2 model on second iteration (or if Level 1 didn't help)
-                elif iteration == 2 or (level1_result and level1_result.decision != "rephrased_successfully"):
+                # Try Level 2 model on second iteration (if Level 1 wasn't called in first iteration)
+                elif iteration == 2 and not level1_result:
                     print("Using Level 2 model for advanced analysis...")
                     level2_result = assistant.process_with_level2(current_search_string, top_result_name, level1_result)
                     
