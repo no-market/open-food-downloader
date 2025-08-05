@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 OpenAI Assistant for product query processing.
-Implements two-stage GPT-3.5 and GPT-4 assistance for improving product name matching.
+Implements two-stage Level 1 and Level 2 model assistance for improving product name matching.
 """
 
 import os
@@ -45,10 +45,10 @@ class OpenAIAssistant:
             self.client = None
             self._init_client()
             # Track conversation history for each model
-            self.gpt35_conversation = []
-            self.gpt4_conversation = []
-            self.gpt35_first_call = True
-            self.gpt4_first_call = True
+            self.level1_conversation = []
+            self.level2_conversation = []
+            self.level1_first_call = True
+            self.level2_first_call = True
             OpenAIAssistant._initialized = True
     
     def _init_client(self):
@@ -79,16 +79,16 @@ class OpenAIAssistant:
         """
         return rapidfuzz_score < SCORE_THRESHOLD
     
-    def process_with_gpt35(self, search_string: str, top_result_name: Optional[str] = None) -> OpenAIResult:
+    def process_with_level1(self, search_string: str, top_result_name: Optional[str] = None) -> OpenAIResult:
         """
-        Process search query with GPT-3.5 for initial analysis and rephrasing.
+        Process search query with Level 1 model for initial analysis and rephrasing.
         
         Args:
             search_string: Original search string
             top_result_name: Top search result name from fuzzy search (optional)
             
         Returns:
-            OpenAIResult with GPT-3.5 analysis
+            OpenAIResult with Level 1 model analysis
         """
         if not self.client:
             return OpenAIResult(
@@ -99,32 +99,32 @@ class OpenAIAssistant:
         
         try:
             # Create user prompt with minimal context
-            user_prompt = self._create_gpt35_user_prompt(search_string, top_result_name)
+            user_prompt = self._create_level1_user_prompt(search_string, top_result_name)
             
             # For first call, initialize conversation with system message
-            if self.gpt35_first_call:
-                self.gpt35_conversation = [
-                    {"role": "system", "content": self._get_gpt35_system_message()}
+            if self.level1_first_call:
+                self.level1_conversation = [
+                    {"role": "system", "content": self._get_level1_system_message()}
                 ]
-                self.gpt35_first_call = False
+                self.level1_first_call = False
             
             # Add user message to conversation
-            self.gpt35_conversation.append({"role": "user", "content": user_prompt})
+            self.level1_conversation.append({"role": "user", "content": user_prompt})
             
-            # Call GPT-3.5 with conversation history
+            # Call Level 1 model with conversation history
             response = self.client.chat.completions.create(
                 model=LEVEL_1_MODEL,
-                messages=self.gpt35_conversation,
+                messages=self.level1_conversation,
                 temperature=0.3,
                 max_tokens=500
             )
             
             # Add assistant response to conversation history
             assistant_response = response.choices[0].message.content
-            self.gpt35_conversation.append({"role": "assistant", "content": assistant_response})
+            self.level1_conversation.append({"role": "assistant", "content": assistant_response})
             
             # Parse response
-            return self._parse_gpt35_response(response, search_string)
+            return self._parse_level1_response(response, search_string)
             
         except Exception as e:
             return OpenAIResult(
@@ -133,10 +133,10 @@ class OpenAIAssistant:
                 error=f"Level 1 model error: {str(e)}"
             )
     
-    def process_with_gpt4(self, search_string: str, top_result_name: Optional[str] = None, 
+    def process_with_level2(self, search_string: str, top_result_name: Optional[str] = None, 
                          level1_result: Optional[OpenAIResult] = None) -> OpenAIResult:
         """
-        Process search query with GPT-4 for advanced analysis.
+        Process search query with Level 2 model for advanced analysis.
         
         Args:
             search_string: Original search string
@@ -144,7 +144,7 @@ class OpenAIAssistant:
             level1_result: Previous Level 1 model result (optional)
             
         Returns:
-            OpenAIResult with GPT-4 analysis
+            OpenAIResult with Level 2 model analysis
         """
         if not self.client:
             return OpenAIResult(
@@ -155,32 +155,32 @@ class OpenAIAssistant:
         
         try:
             # Create user prompt with minimal context
-            user_prompt = self._create_gpt4_user_prompt(search_string, top_result_name, level1_result)
+            user_prompt = self._create_level2_user_prompt(search_string, top_result_name, level1_result)
             
             # For first call, initialize conversation with system message
-            if self.gpt4_first_call:
-                self.gpt4_conversation = [
-                    {"role": "system", "content": self._get_gpt4_system_message()}
+            if self.level2_first_call:
+                self.level2_conversation = [
+                    {"role": "system", "content": self._get_level2_system_message()}
                 ]
-                self.gpt4_first_call = False
+                self.level2_first_call = False
             
             # Add user message to conversation
-            self.gpt4_conversation.append({"role": "user", "content": user_prompt})
+            self.level2_conversation.append({"role": "user", "content": user_prompt})
             
-            # Call GPT-4 with conversation history
+            # Call Level 2 model with conversation history
             response = self.client.chat.completions.create(
                 model=LEVEL_2_MODEL,
-                messages=self.gpt4_conversation,
+                messages=self.level2_conversation,
                 temperature=0.2,
                 max_tokens=600
             )
             
             # Add assistant response to conversation history
             assistant_response = response.choices[0].message.content
-            self.gpt4_conversation.append({"role": "assistant", "content": assistant_response})
+            self.level2_conversation.append({"role": "assistant", "content": assistant_response})
             
             # Parse response
-            return self._parse_gpt4_response(response, search_string)
+            return self._parse_level2_response(response, search_string)
             
         except Exception as e:
             return OpenAIResult(
@@ -189,7 +189,7 @@ class OpenAIAssistant:
                 error=f"Level 2 model error: {str(e)}"
             )
     
-    def _get_gpt35_system_message(self) -> str:
+    def _get_level1_system_message(self) -> str:
         """Get system message for Level 1 model."""
         return """You are a food product search assistant that helps analyze and improve product search queries.
 
@@ -211,7 +211,7 @@ Focus on:
 3. Are there common misspellings or abbreviations to expand?
 4. Is the language/format causing search issues?"""
 
-    def _get_gpt4_system_message(self) -> str:
+    def _get_level2_system_message(self) -> str:
         """Get system message for Level 2 model."""
         return """You are an advanced food product search assistant with deep knowledge of food products, brands, and multilingual product names.
 
@@ -230,7 +230,7 @@ Use your advanced knowledge to:
 
 Be more sophisticated than initial analysis and provide the best possible search strategy."""
 
-    def _create_gpt35_user_prompt(self, search_string: str, top_result_name: Optional[str]) -> str:
+    def _create_level1_user_prompt(self, search_string: str, top_result_name: Optional[str]) -> str:
         """Create user prompt for Level 1 model with minimal context."""
         prompt = f'Search Query: "{search_string}"'
         
@@ -239,7 +239,7 @@ Be more sophisticated than initial analysis and provide the best possible search
         
         return prompt
 
-    def _create_gpt4_user_prompt(self, search_string: str, top_result_name: Optional[str], 
+    def _create_level2_user_prompt(self, search_string: str, top_result_name: Optional[str], 
                                 level1_result: Optional[OpenAIResult]) -> str:
         """Create user prompt for Level 2 model with minimal context."""
         prompt = f'Search Query: "{search_string}"'
@@ -254,8 +254,8 @@ Be more sophisticated than initial analysis and provide the best possible search
         
         return prompt
     
-    def _parse_gpt35_response(self, response, search_string: str) -> OpenAIResult:
-        """Parse GPT-3.5 response."""
+    def _parse_level1_response(self, response, search_string: str) -> OpenAIResult:
+        """Parse Level 1 model response."""
         try:
             content = response.choices[0].message.content
             
@@ -294,8 +294,8 @@ Be more sophisticated than initial analysis and provide the best possible search
                 error=f"Failed to parse Level 1 model response: {str(e)}"
             )
     
-    def _parse_gpt4_response(self, response, search_string: str) -> OpenAIResult:
-        """Parse GPT-4 response."""
+    def _parse_level2_response(self, response, search_string: str) -> OpenAIResult:
+        """Parse Level 2 model response."""
         try:
             content = response.choices[0].message.content
             
@@ -334,120 +334,3 @@ Be more sophisticated than initial analysis and provide the best possible search
                 error=f"Failed to parse Level 2 model response: {str(e)}"
             )
 
-
-def create_research_function(collection):
-    """
-    Create a re-search function for use with OpenAI assistance.
-    
-    Args:
-        collection: MongoDB collection for searching
-        
-    Returns:
-        Function that can perform search with a new query string
-    """
-    def research_with_query(new_search_string: str) -> List[Dict[str, Any]]:
-        """Perform search with new query string and return results with rapidfuzz scores."""
-        try:
-            # Import search functions (avoid circular imports)
-            from utils import format_search_string, compute_given_name
-            
-            # Format the new search string 
-            formatted_string = format_search_string(new_search_string)
-            
-            # Perform direct search (same logic as search_products_direct)
-            search_terms = re.findall(r'\b\w+\b', formatted_string.lower())
-            
-            if not search_terms:
-                return []
-            
-            # Build MongoDB query
-            regex_query = {
-                "$text": {
-                    "$search": " ".join(search_terms)
-                }
-            }
-            
-            # Execute search
-            cursor = collection.find(regex_query, {"score": {"$meta": "textScore"}})
-            cursor = cursor.sort([("score", {"$meta": "textScore"})])
-            results = list(cursor)
-            
-            # Add RapidFuzz scores and given_name
-            from utils import compute_rapidfuzz_score
-            for result in results:
-                result['rapidfuzz_score'] = compute_rapidfuzz_score(new_search_string, result)
-                result['given_name'] = compute_given_name(result)
-            
-            # Sort by RapidFuzz score
-            results.sort(key=lambda x: x.get('rapidfuzz_score', 0), reverse=True)
-            
-            return results
-            
-        except Exception as e:
-            print(f"Warning: Re-search failed: {e}")
-            return []
-    
-    return research_with_query
-
-
-def process_openai_assistance(search_string: str, rapidfuzz_results: List[Dict[str, Any]], 
-                             search_function=None) -> Tuple[Optional[OpenAIResult], Optional[OpenAIResult]]:
-    """
-    Main function to process OpenAI assistance for a search query with re-search logic.
-    
-    Args:
-        search_string: The search query string
-        rapidfuzz_results: Results from RapidFuzz search
-        search_function: Function to perform search again (for re-search logic)
-        
-    Returns:
-        Tuple of (level1_result, level2_result) - may be None if not needed/available
-    """
-    if not rapidfuzz_results:
-        return None, None
-    
-    # Get best RapidFuzz score and top result name
-    best_score = max(result.get('rapidfuzz_score', 0) for result in rapidfuzz_results)
-    top_result_name = rapidfuzz_results[0].get('given_name') if rapidfuzz_results else None
-    
-    # Initialize assistant (singleton)
-    assistant = OpenAIAssistant()
-    
-    # Check if OpenAI assistance is needed
-    if not assistant.should_use_openai(best_score):
-        return None, None
-    
-    print(f"RapidFuzz score {best_score:.1f} is below threshold {SCORE_THRESHOLD}, using OpenAI assistance...")
-    
-    # Process with Level 1 model
-    level1_result = assistant.process_with_gpt35(search_string, top_result_name)
-    
-    # Check if Level 1 provided a rephrased query and we have a search function
-    if (level1_result.decision == "rephrased_successfully" and 
-        level1_result.rephrased_query and 
-        search_function):
-        
-        print(f"Level 1 model suggested '{level1_result.rephrased_query}', performing re-search...")
-        
-        # Perform re-search with the rephrased query
-        try:
-            research_results = search_function(level1_result.rephrased_query)
-            if research_results:
-                research_best_score = max(result.get('rapidfuzz_score', 0) for result in research_results)
-                print(f"Re-search best score: {research_best_score:.1f}")
-                
-                # If re-search score is good enough, skip Level 2 model
-                if research_best_score >= SCORE_THRESHOLD:
-                    print(f"Re-search score {research_best_score:.1f} is above threshold, skipping Level 2 model")
-                    return level1_result, None
-                else:
-                    print(f"Re-search score {research_best_score:.1f} still below threshold, continuing to Level 2 model")
-                    # Update top result name for Level 2 model
-                    top_result_name = research_results[0].get('given_name') if research_results else top_result_name
-        except Exception as e:
-            print(f"Warning: Re-search failed: {e}")
-    
-    # Process with Level 2 model
-    level2_result = assistant.process_with_gpt4(search_string, top_result_name, level1_result)
-    
-    return level1_result, level2_result

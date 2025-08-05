@@ -16,7 +16,6 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple
 
 from search_products import search_products
-from openai_assistant import process_openai_assistance
 
 
 def display_csv_as_table(csv_file_path: str, max_rows: int = 200, max_col_width: int = 30) -> bool:
@@ -455,14 +454,14 @@ def search_batch_products(batch_file: str = "batch.txt", output_file: str = None
         csv_rows.append(format_csv_row(i, "Fuzzy", product_name, top_rapidfuzz))
         
         # Add OpenAI results if available
-        if 'openai_gpt35' in search_results:
-            level1_result = search_results['openai_gpt35']
-            csv_rows.append(format_openai_csv_row(i, "gpt-3.5", product_name, level1_result))
+        if 'openai_level1' in search_results:
+            level1_result = search_results['openai_level1']
+            csv_rows.append(format_openai_csv_row(i, "level-1", product_name, level1_result))
             print(f"  Level 1 model decision: {level1_result.get('decision', 'unknown')}")
         
-        if 'openai_gpt4' in search_results:
-            level2_result = search_results['openai_gpt4']
-            csv_rows.append(format_openai_csv_row(i, "gpt-4", product_name, level2_result))
+        if 'openai_level2' in search_results:
+            level2_result = search_results['openai_level2']
+            csv_rows.append(format_openai_csv_row(i, "level-2", product_name, level2_result))
             print(f"  Level 2 model decision: {level2_result.get('decision', 'unknown')}")
     
     # Write CSV file
@@ -517,7 +516,7 @@ def main():
     print(f"- Input file: {args.batch}")
     print(f"- Output file: {output_file}")
     print("- Format: CSV with columns: Number, Input string, Given Name, Score, ID, Categories, Product Names")
-    print("- Each product has 2-4 rows: N.Mongo, N.Fuzzy, N.gpt-3.5 (if triggered), N.gpt-4 (if triggered)")
+    print("- Each product has 2-4 rows: N.Mongo, N.Fuzzy, N.level-1 (if triggered), N.level-2 (if triggered)")
 
 
 if __name__ == "__main__":

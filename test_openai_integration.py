@@ -3,7 +3,7 @@
 Simple test for OpenAI integration without requiring MongoDB or API keys.
 """
 
-from openai_assistant import OpenAIAssistant, process_openai_assistance, SCORE_THRESHOLD
+from openai_assistant import OpenAIAssistant, SCORE_THRESHOLD
 
 
 def test_openai_assistant_initialization():
@@ -28,51 +28,51 @@ def test_score_threshold_logic():
     print(f"✓ Score 30.0 correctly triggers OpenAI (threshold: {SCORE_THRESHOLD})")
 
 
-def test_process_openai_assistance_no_results():
-    """Test OpenAI assistance with no search results."""
-    level1_result, level2_result = process_openai_assistance("test", [])
+def test_assistant_methods_exist():
+    """Test that the assistant has the expected methods."""
+    assistant = OpenAIAssistant()
     
-    # Should return None when no results
-    assert level1_result is None
-    assert level2_result is None
-    print("✓ No OpenAI processing when no search results")
+    # Check that methods exist (even if client is not available)
+    assert hasattr(assistant, 'process_with_level1')
+    assert hasattr(assistant, 'process_with_level2') 
+    assert hasattr(assistant, 'should_use_openai')
+    print("✓ Assistant has expected methods")
 
 
-def test_process_openai_assistance_high_scores():
-    """Test OpenAI assistance with high scores (should not trigger)."""
-    mock_results = [
-        {"rapidfuzz_score": 85.0, "given_name": "Test Product"},
-        {"rapidfuzz_score": 75.0, "given_name": "Another Product"}
-    ]
+def test_singleton_pattern():
+    """Test that OpenAI assistant uses singleton pattern."""
+    assistant1 = OpenAIAssistant()
+    assistant2 = OpenAIAssistant()
     
-    level1_result, level2_result = process_openai_assistance("test", mock_results)
-    
-    # Should return None when scores are high
-    assert level1_result is None
-    assert level2_result is None
-    print("✓ No OpenAI processing when scores are above threshold")
+    # Should be the same instance
+    assert assistant1 is assistant2
+    print("✓ Singleton pattern works correctly")
 
 
-def test_process_openai_assistance_low_scores():
-    """Test OpenAI assistance with low scores (should trigger but fail without API key)."""
-    mock_results = [
-        {"rapidfuzz_score": 25.0, "given_name": "Test Product"},
-        {"rapidfuzz_score": 15.0, "given_name": "Another Product"}
-    ]
+def test_level1_processing_without_api():
+    """Test Level 1 processing without API key."""
+    assistant = OpenAIAssistant()
     
-    level1_result, level2_result = process_openai_assistance("test", mock_results)
+    result = assistant.process_with_level1("test query", "test product")
     
-    # Should return results (though with errors due to no API key)
-    assert level1_result is not None
-    assert level2_result is not None
+    # Should return a result with error due to no API key
+    assert result is not None
+    assert result.error is not None
+    assert "not available" in result.error
+    print("✓ Level 1 processing handles missing API key gracefully")
+
+
+def test_level2_processing_without_api():
+    """Test Level 2 processing without API key."""
+    assistant = OpenAIAssistant()
     
-    # Should have errors due to missing API key
-    assert level1_result.error is not None
-    assert level2_result.error is not None
+    result = assistant.process_with_level2("test query", "test product")
     
-    print("✓ OpenAI processing triggered for low scores (with expected API key errors)")
-    print(f"  GPT-3.5 error: {level1_result.error}")
-    print(f"  GPT-4 error: {level2_result.error}")
+    # Should return a result with error due to no API key
+    assert result is not None
+    assert result.error is not None
+    assert "not available" in result.error
+    print("✓ Level 2 processing handles missing API key gracefully")
 
 
 if __name__ == "__main__":
@@ -81,9 +81,10 @@ if __name__ == "__main__":
     
     test_openai_assistant_initialization()
     test_score_threshold_logic()
-    test_process_openai_assistance_no_results()
-    test_process_openai_assistance_high_scores()
-    test_process_openai_assistance_low_scores()
+    test_assistant_methods_exist()
+    test_singleton_pattern()
+    test_level1_processing_without_api()
+    test_level2_processing_without_api()
     
     print("\n✅ All tests passed!")
     print("\nNote: To fully test with real OpenAI API:")

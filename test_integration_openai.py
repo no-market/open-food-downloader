@@ -52,7 +52,7 @@ def test_search_with_mock_data():
     
     # Import after setting environment variable
     from search_products import search_products_direct, apply_rapidfuzz_scoring
-    from openai_assistant import process_openai_assistance
+    from openai_assistant import OpenAIAssistant, SCORE_THRESHOLD
     
     # Create mock data with products that won't match our search well
     mock_results = [
@@ -83,20 +83,24 @@ def test_search_with_mock_data():
         best_score = max(r.get('rapidfuzz_score', 0) for r in results_with_fuzzy)
         print(f"Best RapidFuzz score: {best_score:.1f}")
         
-        # Test OpenAI assistance
-        level1_result, level2_result = process_openai_assistance(search_query, results_with_fuzzy)
+        # Test OpenAI assistance simulation
+        assistant = OpenAIAssistant()
         
-        if level1_result:
-            print(f"GPT-3.5 decision: {level1_result.decision}")
-            print(f"GPT-3.5 error: {level1_result.error}")
+        if assistant.should_use_openai(best_score):
+            print(f"✅ OpenAI would be triggered (score {best_score:.1f} < threshold {SCORE_THRESHOLD})")
+            
+            # Test Level 1 processing
+            top_result_name = results_with_fuzzy[0].get('given_name') if results_with_fuzzy else None
+            level1_result = assistant.process_with_level1(search_query, top_result_name)
+            print(f"Level 1 decision: {level1_result.decision}")
+            print(f"Level 1 error: {level1_result.error}")
+            
+            # Test Level 2 processing
+            level2_result = assistant.process_with_level2(search_query, top_result_name, level1_result)
+            print(f"Level 2 decision: {level2_result.decision}")
+            print(f"Level 2 error: {level2_result.error}")
         else:
-            print("GPT-3.5 was not triggered (scores were too high)")
-        
-        if level2_result:
-            print(f"GPT-4 decision: {level2_result.decision}")
-            print(f"GPT-4 error: {level2_result.error}")
-        else:
-            print("GPT-4 was not triggered (scores were too high)")
+            print(f"❌ OpenAI would not be triggered (score {best_score:.1f} >= threshold {SCORE_THRESHOLD})")
     
     print("✅ Integration test completed successfully!")
 
