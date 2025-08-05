@@ -183,6 +183,9 @@ def search_products(search_string: str) -> Dict[str, Any]:
                     elif level1_result.decision == "not_a_product":
                         print("Level 1 model determined this is not a food product")
                         break
+                    elif level1_result.decision == "valid_product":
+                        print("Level 1 model confirmed this is a valid food product")
+                        break
                     else:
                         print("Level 1 model could not improve the query, trying Level 2 model...")
                 
@@ -218,6 +221,9 @@ def search_products(search_string: str) -> Dict[str, Any]:
                         current_search_string = level1_result.rephrased_query
                         current_formatted_string = format_search_string(current_search_string)
                         continue
+                    elif level1_result.decision in ["not_a_product", "valid_product"]:
+                        # Stop processing if Level 1 model has made a definitive decision
+                        break
                 break
         
         # Use the final results from the last iteration
