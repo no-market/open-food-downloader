@@ -229,7 +229,7 @@ Always respond in JSON:
   "rephrased_query": "improved search query if applicable"
 }
 
-Be strict: only mark "valid_product" if it's an actual match."""
+If the query is unclear, try to intelligently interpret abbreviations and provide a possible rephrased query."""
 
     def _create_level1_user_prompt(self, search_string: str, top_result_name: Optional[str]) -> str:
         """Create user prompt for Level 1 model with minimal context."""
