@@ -111,14 +111,14 @@ class OpenAIAssistant:
             )
     
     def process_with_gpt4(self, search_string: str, search_results: List[Dict[str, Any]], 
-                         gpt35_result: OpenAIResult) -> OpenAIResult:
+                         level1_result: OpenAIResult) -> OpenAIResult:
         """
         Process search query with GPT-4 for advanced analysis.
         
         Args:
             search_string: Original search string
             search_results: Current search results from MongoDB/RapidFuzz
-            gpt35_result: Previous GPT-3.5 result
+            level1_result: Previous Level 1 model result
             
         Returns:
             OpenAIResult with GPT-4 analysis
@@ -134,8 +134,8 @@ class OpenAIAssistant:
             # Prepare context from search results
             context = self._prepare_search_context(search_results)
             
-            # Create prompt for GPT-4 with GPT-3.5 context
-            prompt = self._create_gpt4_prompt(search_string, context, gpt35_result)
+            # Create prompt for GPT-4 with Level 1 context
+            prompt = self._create_gpt4_prompt(search_string, context, level1_result)
             
             # Call GPT-4
             response = self.client.chat.completions.create(
@@ -217,11 +217,11 @@ Focus on:
 4. Is the language/format causing search issues?
 """
     
-    def _create_gpt4_prompt(self, search_string: str, context: str, gpt35_result: OpenAIResult) -> str:
+    def _create_gpt4_prompt(self, search_string: str, context: str, level1_result: OpenAIResult) -> str:
         """Create prompt for GPT-4 analysis."""
-        gpt35_info = f"GPT-3.5 analysis: {gpt35_result.decision}"
-        if gpt35_result.rephrased_query:
-            gpt35_info += f", suggested: '{gpt35_result.rephrased_query}'"
+        level1_info = f"Level 1 analysis: {level1_result.decision}"
+        if level1_result.rephrased_query:
+            level1_info += f", suggested: '{level1_result.rephrased_query}'"
         
         return f"""
 Advanced analysis of this food product search query:
@@ -230,7 +230,7 @@ Search Query: "{search_string}"
 
 {context}
 
-Previous Analysis: {gpt35_info}
+Previous Analysis: {level1_info}
 
 Please provide advanced analysis in this JSON format:
 {{
@@ -346,7 +346,7 @@ def process_openai_assistance(search_string: str, rapidfuzz_results: List[Dict[s
         rapidfuzz_results: Results from RapidFuzz search
         
     Returns:
-        Tuple of (gpt35_result, gpt4_result) - may be None if not needed/available
+        Tuple of (level1_result, level2_result) - may be None if not needed/available
     """
     if not rapidfuzz_results:
         return None, None
@@ -363,10 +363,10 @@ def process_openai_assistance(search_string: str, rapidfuzz_results: List[Dict[s
     
     print(f"RapidFuzz score {best_score:.1f} is below threshold {SCORE_THRESHOLD}, using OpenAI assistance...")
     
-    # Process with GPT-3.5
-    gpt35_result = assistant.process_with_gpt35(search_string, rapidfuzz_results)
+    # Process with Level 1 model
+    level1_result = assistant.process_with_gpt35(search_string, rapidfuzz_results)
     
-    # Process with GPT-4
-    gpt4_result = assistant.process_with_gpt4(search_string, rapidfuzz_results, gpt35_result)
+    # Process with Level 2 model
+    level2_result = assistant.process_with_gpt4(search_string, rapidfuzz_results, level1_result)
     
-    return gpt35_result, gpt4_result
+    return level1_result, level2_result

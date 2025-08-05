@@ -30,11 +30,11 @@ def test_score_threshold_logic():
 
 def test_process_openai_assistance_no_results():
     """Test OpenAI assistance with no search results."""
-    gpt35_result, gpt4_result = process_openai_assistance("test", [])
+    level1_result, level2_result = process_openai_assistance("test", [])
     
     # Should return None when no results
-    assert gpt35_result is None
-    assert gpt4_result is None
+    assert level1_result is None
+    assert level2_result is None
     print("✓ No OpenAI processing when no search results")
 
 
@@ -45,11 +45,11 @@ def test_process_openai_assistance_high_scores():
         {"rapidfuzz_score": 75.0, "given_name": "Another Product"}
     ]
     
-    gpt35_result, gpt4_result = process_openai_assistance("test", mock_results)
+    level1_result, level2_result = process_openai_assistance("test", mock_results)
     
     # Should return None when scores are high
-    assert gpt35_result is None
-    assert gpt4_result is None
+    assert level1_result is None
+    assert level2_result is None
     print("✓ No OpenAI processing when scores are above threshold")
 
 
@@ -60,19 +60,19 @@ def test_process_openai_assistance_low_scores():
         {"rapidfuzz_score": 15.0, "given_name": "Another Product"}
     ]
     
-    gpt35_result, gpt4_result = process_openai_assistance("test", mock_results)
+    level1_result, level2_result = process_openai_assistance("test", mock_results)
     
     # Should return results (though with errors due to no API key)
-    assert gpt35_result is not None
-    assert gpt4_result is not None
+    assert level1_result is not None
+    assert level2_result is not None
     
     # Should have errors due to missing API key
-    assert gpt35_result.error is not None
-    assert gpt4_result.error is not None
+    assert level1_result.error is not None
+    assert level2_result.error is not None
     
     print("✓ OpenAI processing triggered for low scores (with expected API key errors)")
-    print(f"  GPT-3.5 error: {gpt35_result.error}")
-    print(f"  GPT-4 error: {gpt4_result.error}")
+    print(f"  GPT-3.5 error: {level1_result.error}")
+    print(f"  GPT-4 error: {level2_result.error}")
 
 
 if __name__ == "__main__":

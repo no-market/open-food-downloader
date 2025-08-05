@@ -458,14 +458,14 @@ def search_batch_products(batch_file: str = "batch.txt", output_file: str = None
         
         # Add OpenAI results if available
         if 'openai_gpt35' in search_results:
-            gpt35_result = search_results['openai_gpt35']
-            csv_rows.append(format_openai_csv_row(i, "gpt-3.5", product_name, gpt35_result))
-            print(f"  GPT-3.5 decision: {gpt35_result.get('decision', 'unknown')}")
+            level1_result = search_results['openai_gpt35']
+            csv_rows.append(format_openai_csv_row(i, "gpt-3.5", product_name, level1_result))
+            print(f"  GPT-3.5 decision: {level1_result.get('decision', 'unknown')}")
         
         if 'openai_gpt4' in search_results:
-            gpt4_result = search_results['openai_gpt4']
-            csv_rows.append(format_openai_csv_row(i, "gpt-4", product_name, gpt4_result))
-            print(f"  GPT-4 decision: {gpt4_result.get('decision', 'unknown')}")
+            level2_result = search_results['openai_gpt4']
+            csv_rows.append(format_openai_csv_row(i, "gpt-4", product_name, level2_result))
+            print(f"  GPT-4 decision: {level2_result.get('decision', 'unknown')}")
     
     # Write CSV file
     try:

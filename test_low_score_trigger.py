@@ -40,29 +40,29 @@ def test_guaranteed_low_score():
     print("Mock results have manually set low RapidFuzz scores (25.0 and 15.0)")
     
     # Test OpenAI assistance
-    gpt35_result, gpt4_result = process_openai_assistance(search_query, mock_results)
+    level1_result, level2_result = process_openai_assistance(search_query, mock_results)
     
-    if gpt35_result:
+    if level1_result:
         print(f"\n✅ GPT-3.5 was triggered!")
-        print(f"  Model: {gpt35_result.model}")
-        print(f"  Decision: {gpt35_result.decision}")
-        print(f"  Error: {gpt35_result.error}")
-        if gpt35_result.rephrased_query:
-            print(f"  Rephrased query: {gpt35_result.rephrased_query}")
-        if gpt35_result.reasoning:
-            print(f"  Reasoning: {gpt35_result.reasoning}")
+        print(f"  Model: {level1_result.model}")
+        print(f"  Decision: {level1_result.decision}")
+        print(f"  Error: {level1_result.error}")
+        if level1_result.rephrased_query:
+            print(f"  Rephrased query: {level1_result.rephrased_query}")
+        if level1_result.reasoning:
+            print(f"  Reasoning: {level1_result.reasoning}")
     else:
         print("❌ GPT-3.5 was not triggered")
     
-    if gpt4_result:
+    if level2_result:
         print(f"\n✅ GPT-4 was triggered!")
-        print(f"  Model: {gpt4_result.model}")
-        print(f"  Decision: {gpt4_result.decision}")
-        print(f"  Error: {gpt4_result.error}")
-        if gpt4_result.rephrased_query:
-            print(f"  Rephrased query: {gpt4_result.rephrased_query}")
-        if gpt4_result.reasoning:
-            print(f"  Reasoning: {gpt4_result.reasoning}")
+        print(f"  Model: {level2_result.model}")
+        print(f"  Decision: {level2_result.decision}")
+        print(f"  Error: {level2_result.error}")
+        if level2_result.rephrased_query:
+            print(f"  Rephrased query: {level2_result.rephrased_query}")
+        if level2_result.reasoning:
+            print(f"  Reasoning: {level2_result.reasoning}")
     else:
         print("❌ GPT-4 was not triggered")
 

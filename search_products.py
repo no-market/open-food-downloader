@@ -138,7 +138,7 @@ def search_products(search_string: str) -> Dict[str, Any]:
         
         # Process OpenAI assistance if needed
         print("Checking if OpenAI assistance is needed...")
-        gpt35_result, gpt4_result = process_openai_assistance(search_string, direct_results_with_rapidfuzz)
+        level1_result, level2_result = process_openai_assistance(search_string, direct_results_with_rapidfuzz)
         
         # Prepare results
         results = {
@@ -156,24 +156,24 @@ def search_products(search_string: str) -> Dict[str, Any]:
         }
         
         # Add OpenAI results if available
-        if gpt35_result:
+        if level1_result:
             results["openai_gpt35"] = {
-                "model": gpt35_result.model,
-                "decision": gpt35_result.decision,
-                "rephrased_query": gpt35_result.rephrased_query,
-                "confidence": gpt35_result.confidence,
-                "reasoning": gpt35_result.reasoning,
-                "error": gpt35_result.error
+                "model": level1_result.model,
+                "decision": level1_result.decision,
+                "rephrased_query": level1_result.rephrased_query,
+                "confidence": level1_result.confidence,
+                "reasoning": level1_result.reasoning,
+                "error": level1_result.error
             }
         
-        if gpt4_result:
+        if level2_result:
             results["openai_gpt4"] = {
-                "model": gpt4_result.model,
-                "decision": gpt4_result.decision,
-                "rephrased_query": gpt4_result.rephrased_query,
-                "confidence": gpt4_result.confidence,
-                "reasoning": gpt4_result.reasoning,
-                "error": gpt4_result.error
+                "model": level2_result.model,
+                "decision": level2_result.decision,
+                "rephrased_query": level2_result.rephrased_query,
+                "confidence": level2_result.confidence,
+                "reasoning": level2_result.reasoning,
+                "error": level2_result.error
             }
         
         # Close MongoDB connection
@@ -183,15 +183,15 @@ def search_products(search_string: str) -> Dict[str, Any]:
         print(f"RapidFuzz scoring applied to {len(direct_results_with_rapidfuzz)} results")
         
         # Log OpenAI results
-        if gpt35_result:
-            print(f"GPT-3.5 decision: {gpt35_result.decision}")
-            if gpt35_result.rephrased_query:
-                print(f"GPT-3.5 suggested query: '{gpt35_result.rephrased_query}'")
+        if level1_result:
+            print(f"GPT-3.5 decision: {level1_result.decision}")
+            if level1_result.rephrased_query:
+                print(f"GPT-3.5 suggested query: '{level1_result.rephrased_query}'")
         
-        if gpt4_result:
-            print(f"GPT-4 decision: {gpt4_result.decision}")
-            if gpt4_result.rephrased_query:
-                print(f"GPT-4 suggested query: '{gpt4_result.rephrased_query}'")
+        if level2_result:
+            print(f"GPT-4 decision: {level2_result.decision}")
+            if level2_result.rephrased_query:
+                print(f"GPT-4 suggested query: '{level2_result.rephrased_query}'")
         
         return results
         

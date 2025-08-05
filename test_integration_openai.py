@@ -84,17 +84,17 @@ def test_search_with_mock_data():
         print(f"Best RapidFuzz score: {best_score:.1f}")
         
         # Test OpenAI assistance
-        gpt35_result, gpt4_result = process_openai_assistance(search_query, results_with_fuzzy)
+        level1_result, level2_result = process_openai_assistance(search_query, results_with_fuzzy)
         
-        if gpt35_result:
-            print(f"GPT-3.5 decision: {gpt35_result.decision}")
-            print(f"GPT-3.5 error: {gpt35_result.error}")
+        if level1_result:
+            print(f"GPT-3.5 decision: {level1_result.decision}")
+            print(f"GPT-3.5 error: {level1_result.error}")
         else:
             print("GPT-3.5 was not triggered (scores were too high)")
         
-        if gpt4_result:
-            print(f"GPT-4 decision: {gpt4_result.decision}")
-            print(f"GPT-4 error: {gpt4_result.error}")
+        if level2_result:
+            print(f"GPT-4 decision: {level2_result.decision}")
+            print(f"GPT-4 error: {level2_result.error}")
         else:
             print("GPT-4 was not triggered (scores were too high)")
     
