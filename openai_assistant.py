@@ -44,6 +44,11 @@ class OpenAIAssistant:
         if not self._initialized:
             self.client = None
             self._init_client()
+            # Track conversation history for each model
+            self.gpt35_conversation = []
+            self.gpt4_conversation = []
+            self.gpt35_first_call = True
+            self.gpt4_first_call = True
             OpenAIAssistant._initialized = True
     
     def _init_client(self):
@@ -96,16 +101,27 @@ class OpenAIAssistant:
             # Create user prompt with minimal context
             user_prompt = self._create_gpt35_user_prompt(search_string, top_result_name)
             
-            # Call GPT-3.5 with instructions in system message
+            # For first call, initialize conversation with system message
+            if self.gpt35_first_call:
+                self.gpt35_conversation = [
+                    {"role": "system", "content": self._get_gpt35_system_message()}
+                ]
+                self.gpt35_first_call = False
+            
+            # Add user message to conversation
+            self.gpt35_conversation.append({"role": "user", "content": user_prompt})
+            
+            # Call GPT-3.5 with conversation history
             response = self.client.chat.completions.create(
                 model=LEVEL_1_MODEL,
-                messages=[
-                    {"role": "system", "content": self._get_gpt35_system_message()},
-                    {"role": "user", "content": user_prompt}
-                ],
+                messages=self.gpt35_conversation,
                 temperature=0.3,
                 max_tokens=500
             )
+            
+            # Add assistant response to conversation history
+            assistant_response = response.choices[0].message.content
+            self.gpt35_conversation.append({"role": "assistant", "content": assistant_response})
             
             # Parse response
             return self._parse_gpt35_response(response, search_string)
@@ -141,16 +157,27 @@ class OpenAIAssistant:
             # Create user prompt with minimal context
             user_prompt = self._create_gpt4_user_prompt(search_string, top_result_name, level1_result)
             
-            # Call GPT-4 with instructions in system message
+            # For first call, initialize conversation with system message
+            if self.gpt4_first_call:
+                self.gpt4_conversation = [
+                    {"role": "system", "content": self._get_gpt4_system_message()}
+                ]
+                self.gpt4_first_call = False
+            
+            # Add user message to conversation
+            self.gpt4_conversation.append({"role": "user", "content": user_prompt})
+            
+            # Call GPT-4 with conversation history
             response = self.client.chat.completions.create(
                 model=LEVEL_2_MODEL,
-                messages=[
-                    {"role": "system", "content": self._get_gpt4_system_message()},
-                    {"role": "user", "content": user_prompt}
-                ],
+                messages=self.gpt4_conversation,
                 temperature=0.2,
                 max_tokens=600
             )
+            
+            # Add assistant response to conversation history
+            assistant_response = response.choices[0].message.content
+            self.gpt4_conversation.append({"role": "assistant", "content": assistant_response})
             
             # Parse response
             return self._parse_gpt4_response(response, search_string)

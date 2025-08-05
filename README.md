@@ -168,16 +168,12 @@ Search results are saved as JSON files with the following structure:
   "openai_gpt35": {
     "model": "gpt-3.5-turbo",
     "decision": "rephrased_successfully",
-    "rephrased_query": "blueberry american 500g",
-    "confidence": 0.85,
-    "reasoning": "Recognized Polish product name..."
+    "rephrased_query": "blueberry american 500g"
   },
   "openai_gpt4": {
     "model": "gpt-4",
     "decision": "valid_product", 
-    "rephrased_query": "american blueberry 500 grams",
-    "confidence": 0.92,
-    "reasoning": "Enhanced analysis..."
+    "rephrased_query": "american blueberry 500 grams"
   }
 }
 ```
