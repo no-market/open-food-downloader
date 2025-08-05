@@ -116,7 +116,10 @@ class OpenAIAssistant:
             response = self.client.chat.completions.create(
                 model=LEVEL_1_MODEL,
                 messages=self.level1_conversation,
-                temperature=0.3,
+                temperature=0.2,
+                top_p=1.0,
+                frequency_penalty=0,
+                presence_penalty=0,
                 max_tokens=500
             )
             
@@ -173,6 +176,9 @@ class OpenAIAssistant:
                 model=LEVEL_2_MODEL,
                 messages=self.level2_conversation,
                 temperature=0.2,
+                top_p=1.0,
+                frequency_penalty=0,
+                presence_penalty=0,
                 max_tokens=600
             )
             
@@ -192,50 +198,38 @@ class OpenAIAssistant:
     
     def _get_level1_system_message(self) -> str:
         """Get system message for Level 1 model."""
-        return """You are a food product search assistant that helps validate search results and improve product search queries.
+        return """You are a product matching assistant specialized in food products. 
+Only respond in JSON using the schema below.
 
-You will receive a user's search query and a possible result from the database. Your task is to determine if the possible result matches what the user was actually looking for, or if the search needs improvement.
+Your goal is to either:
+- Confirm if a given search result is a valid match for a user query
+- Suggest a better query if the result is a poor match
+- Indicate that the input is not a food product
 
-Provide responses in this exact JSON format:
+Always use this JSON format:
 {
-    "decision": "valid_product|rephrased_successfully|not_a_product|no_match_found",
-    "rephrased_query": "improved search query if applicable"
+  "decision": "valid_product|rephrased_successfully|not_a_product|no_match_found",
+  "rephrased_query": "improved search query if applicable"
 }
 
-Decision meanings:
-- valid_product: The possible result matches what the user was searching for (good match found)
-- rephrased_successfully: The possible result doesn't match, but you can suggest better search terms
-- not_a_product: The user's search query doesn't appear to be for a food product
-- no_match_found: Unable to help improve the search
-
-Evaluation process:
-1. Analyze the user's search query to understand what food product they want
-2. Check if the possible result matches their intent
-3. If no match, determine if you can suggest better search terms
-4. Consider misspellings, abbreviations, language issues, or formatting problems"""
+If unsure, do NOT guess. Choose "no_match_found"."""
 
     def _get_level2_system_message(self) -> str:
         """Get system message for Level 2 model."""
-        return """You are an advanced food product search assistant with deep knowledge of food products, brands, and multilingual product names.
+        return """You are a multilingual product search analyst, specialized in parsing food product names from receipts, e-commerce data, and search logs. 
+You understand Polish, English, and code-mixed texts, including abbreviations.
 
-You will receive a user's search query and a possible result from the database. Your task is to provide advanced analysis to determine if the possible result matches what the user was looking for, or suggest sophisticated search improvements.
+Your task:
+- Analyze a user's query and decide if the database result matches it.
+- If not, provide a better query or indicate that it's not a food product.
 
-Provide responses in this exact JSON format:
+Always respond in JSON:
 {
-    "decision": "valid_product|rephrased_successfully|not_a_product|no_match_found",
-    "rephrased_query": "improved search query if applicable"
+  "decision": "valid_product|rephrased_successfully|not_a_product|no_match_found",
+  "rephrased_query": "improved search query if applicable"
 }
 
-Use your advanced knowledge for:
-1. Deep analysis of the user's intent from their search query
-2. Sophisticated matching between search intent and possible result
-3. Advanced handling of brand names, product types, and regional variations
-4. Complex abbreviations, Polish/multilingual text, and colloquialisms
-5. Recognition of receipt-style text (e.g., "ParówKurNatTarcz160g")
-6. Suggesting optimal search terms that might better match the database
-7. Advanced determination if this is truly a food product
-
-Apply sophisticated reasoning beyond basic analysis to provide the best possible search strategy."""
+Be strict: only mark "valid_product" if it's an actual match."""
 
     def _create_level1_user_prompt(self, search_string: str, top_result_name: Optional[str]) -> str:
         """Create user prompt for Level 1 model with minimal context."""
