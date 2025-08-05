@@ -184,14 +184,14 @@ def search_products(search_string: str) -> Dict[str, Any]:
         
         # Log OpenAI results
         if level1_result:
-            print(f"GPT-3.5 decision: {level1_result.decision}")
+            print(f"Level 1 model decision: {level1_result.decision}")
             if level1_result.rephrased_query:
-                print(f"GPT-3.5 suggested query: '{level1_result.rephrased_query}'")
+                print(f"Level 1 model suggested query: '{level1_result.rephrased_query}'")
         
         if level2_result:
-            print(f"GPT-4 decision: {level2_result.decision}")
+            print(f"Level 2 model decision: {level2_result.decision}")
             if level2_result.rephrased_query:
-                print(f"GPT-4 suggested query: '{level2_result.rephrased_query}'")
+                print(f"Level 2 model suggested query: '{level2_result.rephrased_query}'")
         
         return results
         
@@ -273,13 +273,13 @@ def main():
     # Print OpenAI summary
     if 'openai_gpt35' in results:
         gpt35 = results['openai_gpt35']
-        print(f"- GPT-3.5 decision: {gpt35['decision']}")
+        print(f"- Level 1 model decision: {gpt35['decision']}")
         if gpt35.get('rephrased_query'):
             print(f"  Suggested query: '{gpt35['rephrased_query']}'")
     
     if 'openai_gpt4' in results:
         gpt4 = results['openai_gpt4']
-        print(f"- GPT-4 decision: {gpt4['decision']}")
+        print(f"- Level 2 model decision: {gpt4['decision']}")
         if gpt4.get('rephrased_query'):
             print(f"  Suggested query: '{gpt4['rephrased_query']}'")
     

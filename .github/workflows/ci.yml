@@ -46,14 +46,10 @@ jobs:
       run: make install
         
     - name: Run tests
-      env:
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       run: make test
         
     - name: Generate test report
       if: always()
-      env:
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       run: |
         echo "## 🧪 Test Results - Python ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
