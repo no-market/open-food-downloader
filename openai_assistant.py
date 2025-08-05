@@ -7,6 +7,7 @@ Implements two-stage Level 1 and Level 2 model assistance for improving product 
 import os
 import json
 import re
+from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass
 
@@ -333,4 +334,48 @@ Be more sophisticated than initial analysis and provide the best possible search
                 decision="no_match_found",
                 error=f"Failed to parse Level 2 model response: {str(e)}"
             )
+    
+    def export_conversations(self, output_dir: str = ".") -> Dict[str, str]:
+        """
+        Export conversation histories to JSON files.
+        
+        Args:
+            output_dir: Directory to save conversation files
+            
+        Returns:
+            Dictionary with file paths for exported conversations
+        """
+        exported_files = {}
+        
+        try:
+            # Export Level 1 conversation if it exists
+            if self.level1_conversation:
+                level1_file = os.path.join(output_dir, "openai_level1_conversation.json")
+                with open(level1_file, 'w', encoding='utf-8') as f:
+                    json.dump({
+                        "model": LEVEL_1_MODEL,
+                        "conversation": self.level1_conversation,
+                        "total_messages": len(self.level1_conversation),
+                        "exported_at": datetime.now().isoformat()
+                    }, f, indent=2, ensure_ascii=False)
+                exported_files["level1"] = level1_file
+                print(f"Exported Level 1 conversation to: {level1_file}")
+            
+            # Export Level 2 conversation if it exists
+            if self.level2_conversation:
+                level2_file = os.path.join(output_dir, "openai_level2_conversation.json")
+                with open(level2_file, 'w', encoding='utf-8') as f:
+                    json.dump({
+                        "model": LEVEL_2_MODEL,
+                        "conversation": self.level2_conversation,
+                        "total_messages": len(self.level2_conversation),
+                        "exported_at": datetime.now().isoformat()
+                    }, f, indent=2, ensure_ascii=False)
+                exported_files["level2"] = level2_file
+                print(f"Exported Level 2 conversation to: {level2_file}")
+                
+        except Exception as e:
+            print(f"Warning: Failed to export conversations: {e}")
+        
+        return exported_files
 

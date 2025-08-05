@@ -78,6 +78,7 @@ jobs:
       run: |
         echo "Generated files:"
         ls -la batch_search_results_*.csv || echo "No batch search result files found"
+        ls -la openai_*_conversation.json || echo "No conversation files found"
         
     - name: Upload batch search results
       uses: actions/upload-artifact@v4
@@ -86,6 +87,7 @@ jobs:
         name: batch-search-results
         path: |
           batch_search_results_*.csv
+          openai_*_conversation.json
         retention-days: 30
         
     - name: Upload batch search summary
@@ -117,8 +119,13 @@ jobs:
             echo "  - **Format**: CSV with columns: Number, Input string, Given Name, Score, ID" >> $GITHUB_STEP_SUMMARY
             
             # Check if OpenAI results are present
-            if grep -q 'gpt-' "$RESULT_FILE"; then
-              echo "  - **🤖 OpenAI Results**: Present (gpt-3.5 and gpt-4 rows included)" >> $GITHUB_STEP_SUMMARY
+            if grep -q 'level-' "$RESULT_FILE"; then
+              echo "  - **🤖 OpenAI Results**: Present (level-1 and level-2 rows included)" >> $GITHUB_STEP_SUMMARY
+              
+              # Check for conversation files
+              if [ -f openai_level1_conversation.json ] || [ -f openai_level2_conversation.json ]; then
+                echo "  - **💬 Conversation Files**: Available in artifacts" >> $GITHUB_STEP_SUMMARY
+              fi
             else
               echo "  - **🤖 OpenAI Results**: Not present (high scores or no API key)" >> $GITHUB_STEP_SUMMARY
             fi

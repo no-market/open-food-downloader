@@ -63,6 +63,7 @@ jobs:
       run: |
         echo "Generated files:"
         ls -la search_results_*.json || echo "No search result files found"
+        ls -la openai_*_conversation.json || echo "No conversation files found"
         
     - name: Upload search results
       uses: actions/upload-artifact@v4
@@ -71,6 +72,7 @@ jobs:
         name: product-search-results
         path: |
           search_results_*.json
+          openai_*_conversation.json
         retention-days: 30
         
     - name: Upload search summary
@@ -98,11 +100,16 @@ jobs:
             echo "  - **Word-based Search Results**: $WORD_COUNT products found" >> $GITHUB_STEP_SUMMARY
             
             # Check for OpenAI results
-            if jq -e '.openai_gpt35' "$RESULT_FILE" > /dev/null 2>&1; then
-              GPT35_DECISION=$(jq -r '.openai_gpt35.decision // "unknown"' "$RESULT_FILE" 2>/dev/null || echo "unknown")
-              GPT4_DECISION=$(jq -r '.openai_gpt4.decision // "unknown"' "$RESULT_FILE" 2>/dev/null || echo "unknown")
-              echo "  - **🤖 GPT-3.5 Analysis**: $GPT35_DECISION" >> $GITHUB_STEP_SUMMARY
-              echo "  - **🤖 GPT-4 Analysis**: $GPT4_DECISION" >> $GITHUB_STEP_SUMMARY
+            if jq -e '.openai_level1' "$RESULT_FILE" > /dev/null 2>&1; then
+              LEVEL1_DECISION=$(jq -r '.openai_level1.decision // "unknown"' "$RESULT_FILE" 2>/dev/null || echo "unknown")
+              LEVEL2_DECISION=$(jq -r '.openai_level2.decision // "unknown"' "$RESULT_FILE" 2>/dev/null || echo "unknown")
+              echo "  - **🤖 Level 1 Model Analysis**: $LEVEL1_DECISION" >> $GITHUB_STEP_SUMMARY
+              echo "  - **🤖 Level 2 Model Analysis**: $LEVEL2_DECISION" >> $GITHUB_STEP_SUMMARY
+              
+              # Check for conversation files
+              if [ -f openai_level1_conversation.json ] || [ -f openai_level2_conversation.json ]; then
+                echo "  - **💬 Conversation Files**: Available in artifacts" >> $GITHUB_STEP_SUMMARY
+              fi
             else
               echo "  - **🤖 OpenAI Integration**: Not used (high scores or no API key)" >> $GITHUB_STEP_SUMMARY
             fi

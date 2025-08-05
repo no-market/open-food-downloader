@@ -476,6 +476,20 @@ def search_batch_products(batch_file: str = "batch.txt", output_file: str = None
         print(f"📊 Total rows: {len(csv_rows)} (including headers)")
         print(f"🔍 Products processed: {len(product_names)}")
         
+        # Export OpenAI conversations if any AI assistance was used
+        try:
+            from openai_assistant import OpenAIAssistant
+            assistant = OpenAIAssistant()
+            
+            # Check if any conversations exist and export them
+            if assistant.level1_conversation or assistant.level2_conversation:
+                print("Exporting OpenAI conversation histories...")
+                conversation_files = assistant.export_conversations()
+                if conversation_files:
+                    print(f"Conversation files exported: {list(conversation_files.values())}")
+        except Exception as e:
+            print(f"Warning: Failed to export conversations: {e}")
+        
         # Display the results in a nice table format
         display_csv_as_table(output_file, max_col_width=25)
         

@@ -259,6 +259,13 @@ def search_products(search_string: str) -> Dict[str, Any]:
         # Close MongoDB connection
         client.close()
         
+        # Export OpenAI conversations if AI was used
+        if level1_result or level2_result:
+            print("Exporting OpenAI conversation histories...")
+            conversation_files = assistant.export_conversations()
+            if conversation_files:
+                print(f"Conversation files exported: {list(conversation_files.values())}")
+        
         print(f"Direct search found {len(final_direct_results)} results")
         print(f"RapidFuzz scoring applied to {len(final_rapidfuzz_results)} results")
         
