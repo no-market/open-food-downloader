@@ -22,7 +22,7 @@ A Python project to download and search food product records from the OpenFoodFa
 - Results include relevance scores from MongoDB's text search
 - RapidFuzz scoring for improved relevance ranking
 - **OpenAI assistance** for challenging queries:
-  - Two-stage GPT-3.5 and GPT-4 processing when RapidFuzz scores are low (< 50)
+  - Two-stage GPT-3.5 and GPT-4 processing when RapidFuzz scores are low (< 55)
   - Intelligent query rephrasing and product recognition
   - Decision outputs: `valid_product`, `rephrased_successfully`, `not_a_product`, `no_match_found`
   - Requires `OPENAI_API_KEY` environment variable
