@@ -56,10 +56,16 @@ jobs:
     - name: Search products batch
       env:
         MONGO_URI: ${{ secrets.MONGO_URI }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       run: |
         echo "🔍 Starting batch product search..."
         echo "Batch file: '${{ github.event.inputs.batch_file }}'"
         echo "Description: ${{ github.event.inputs.description }}"
+        if [ -n "$OPENAI_API_KEY" ]; then
+          echo "🤖 OpenAI integration: Enabled"
+        else
+          echo "🤖 OpenAI integration: Disabled (no API key)"
+        fi
         echo ""
         
         # Activate virtual environment and run batch search
@@ -72,6 +78,7 @@ jobs:
       run: |
         echo "Generated files:"
         ls -la batch_search_results_*.csv || echo "No batch search result files found"
+        ls -la openai_*_conversation.json || echo "No conversation files found"
         
     - name: Upload batch search results
       uses: actions/upload-artifact@v4
@@ -80,6 +87,7 @@ jobs:
         name: batch-search-results
         path: |
           batch_search_results_*.csv
+          openai_*_conversation.json
         retention-days: 30
         
     - name: Upload batch search summary
@@ -102,11 +110,25 @@ jobs:
           # Show CSV summary
           if [ -f "$RESULT_FILE" ]; then
             TOTAL_ROWS=$(wc -l < "$RESULT_FILE")
-            PRODUCT_COUNT=$(( ($TOTAL_ROWS - 1) / 2 ))  # Exclude header, 2 rows per product
+            # Count how many different search types are present (Mongo, Fuzzy, gpt-3.5, gpt-4)
+            SEARCH_TYPES=$(head -20 "$RESULT_FILE" | grep -o '\.[A-Za-z0-9-]*' | sort -u | wc -l)
+            PRODUCT_COUNT=$(( ($TOTAL_ROWS - 1) / $SEARCH_TYPES ))
             echo "  - **Total Products Searched**: $PRODUCT_COUNT" >> $GITHUB_STEP_SUMMARY
             echo "  - **Total Result Rows**: $(($TOTAL_ROWS - 1)) (excluding header)" >> $GITHUB_STEP_SUMMARY
+            echo "  - **Search Types per Product**: $SEARCH_TYPES (Mongo, Fuzzy, and OpenAI if enabled)" >> $GITHUB_STEP_SUMMARY
             echo "  - **Format**: CSV with columns: Number, Input string, Given Name, Score, ID" >> $GITHUB_STEP_SUMMARY
-            echo "  - **Structure**: Each product has 2 rows (N.Mongo, N.Fuzzy)" >> $GITHUB_STEP_SUMMARY
+            
+            # Check if OpenAI results are present
+            if grep -q 'level-' "$RESULT_FILE"; then
+              echo "  - **🤖 OpenAI Results**: Present (level-1 and level-2 rows included)" >> $GITHUB_STEP_SUMMARY
+              
+              # Check for conversation files
+              if [ -f openai_level1_conversation.json ] || [ -f openai_level2_conversation.json ]; then
+                echo "  - **💬 Conversation Files**: Available in artifacts" >> $GITHUB_STEP_SUMMARY
+              fi
+            else
+              echo "  - **🤖 OpenAI Results**: Not present (high scores or no API key)" >> $GITHUB_STEP_SUMMARY
+            fi
           fi
         else
           echo "❌ **Status**: Batch search failed - no results file generated" >> $GITHUB_STEP_SUMMARY

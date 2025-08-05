@@ -119,21 +119,116 @@ def search_products(search_string: str) -> Dict[str, Any]:
         print(f"Original input: '{search_string}'")
         print(f"Formatted input: '{formatted_string}'")
         
-        # Perform direct search with formatted string
-        print("Performing direct search with formatted input...")
-        direct_results = search_products_direct(collection, search_string, formatted_string)
+        # Initialize OpenAI assistant (singleton pattern)
+        from openai_assistant import OpenAIAssistant, SCORE_THRESHOLD
+        assistant = OpenAIAssistant()
         
-        # Add given_name field to direct results
-        for result in direct_results:
-            result['given_name'] = compute_given_name(result)
+        # Initialize variables for the search loop
+        current_search_string = search_string
+        current_formatted_string = formatted_string
+        level1_result = None
+        level2_result = None
+        iteration = 0
+        max_iterations = 3  # Prevent infinite loops
         
-        # Apply RapidFuzz scoring to the results
-        print("Computing RapidFuzz scores and resorting results...")
-        direct_results_with_rapidfuzz = apply_rapidfuzz_scoring(search_string, direct_results.copy())
+        # Search loop: try original string, then Level 1 rephrased, then Level 2 rephrased
+        while iteration < max_iterations:
+            iteration += 1
+            print(f"\n=== Search Iteration {iteration} ===")
+            print(f"Search string: '{current_search_string}'")
+            print(f"Formatted string: '{current_formatted_string}'")
+            
+            # Perform direct search with current formatted string
+            print("Performing MongoDB search...")
+            direct_results = search_products_direct(collection, current_search_string, current_formatted_string)
+            
+            # Add given_name field to direct results
+            for result in direct_results:
+                result['given_name'] = compute_given_name(result)
+            
+            # Apply RapidFuzz scoring to the results
+            print("Computing RapidFuzz scores...")
+            direct_results_with_rapidfuzz = apply_rapidfuzz_scoring(current_search_string, direct_results.copy())
+            
+            # Add given_name field to rapidfuzz results 
+            for result in direct_results_with_rapidfuzz:
+                result['given_name'] = compute_given_name(result)
+            
+            # Check if we have good results
+            if direct_results_with_rapidfuzz:
+                best_score = max(result.get('rapidfuzz_score', 0) for result in direct_results_with_rapidfuzz)
+                print(f"Best RapidFuzz score: {best_score:.1f}")
+                
+                # If score is good enough, we're done
+                if best_score >= SCORE_THRESHOLD:
+                    print(f"Score {best_score:.1f} is above threshold {SCORE_THRESHOLD}, search successful!")
+                    break
+                
+                # If we have results but score is low, try AI assistance
+                print(f"Score {best_score:.1f} is below threshold {SCORE_THRESHOLD}")
+                
+                # Get top result name for AI context
+                top_result_name = direct_results_with_rapidfuzz[0].get('given_name') if direct_results_with_rapidfuzz else None
+                
+                # Try Level 1 model on first iteration
+                if iteration == 1:
+                    print("Using Level 1 model for query analysis...")
+                    level1_result = assistant.process_with_level1(current_search_string, top_result_name)
+                    
+                    if level1_result.decision == "rephrased_successfully" and level1_result.rephrased_query:
+                        print(f"Level 1 model suggested: '{level1_result.rephrased_query}'")
+                        current_search_string = level1_result.rephrased_query
+                        current_formatted_string = format_search_string(current_search_string)
+                        continue  # Try search again with rephrased query
+                    elif level1_result.decision == "not_a_product":
+                        print("Level 1 model determined this is not a food product")
+                        break
+                    elif level1_result.decision == "valid_product":
+                        print("Level 1 model confirmed this is a valid food product")
+                        break
+                    else:
+                        print("Level 1 model could not improve the query, trying Level 2 model...")
+                
+                # Try Level 2 model on second iteration (or if Level 1 didn't help)
+                elif iteration == 2 or (level1_result and level1_result.decision != "rephrased_successfully"):
+                    print("Using Level 2 model for advanced analysis...")
+                    level2_result = assistant.process_with_level2(current_search_string, top_result_name, level1_result)
+                    
+                    if level2_result.decision == "rephrased_successfully" and level2_result.rephrased_query:
+                        print(f"Level 2 model suggested: '{level2_result.rephrased_query}'")
+                        current_search_string = level2_result.rephrased_query
+                        current_formatted_string = format_search_string(current_search_string)
+                        continue  # Try search again with rephrased query
+                    elif level2_result.decision == "not_a_product":
+                        print("Level 2 model determined this is not a food product")
+                        break
+                    else:
+                        print("Level 2 model could not improve the query further")
+                        break
+                else:
+                    # No more AI assistance available
+                    print("No further AI assistance available")
+                    break
+            else:
+                # No results found at all
+                print("No results found")
+                if iteration == 1:
+                    # Try Level 1 model even without results
+                    print("Trying Level 1 model without search results...")
+                    level1_result = assistant.process_with_level1(current_search_string, None)
+                    
+                    if level1_result.decision == "rephrased_successfully" and level1_result.rephrased_query:
+                        current_search_string = level1_result.rephrased_query
+                        current_formatted_string = format_search_string(current_search_string)
+                        continue
+                    elif level1_result.decision in ["not_a_product", "valid_product"]:
+                        # Stop processing if Level 1 model has made a definitive decision
+                        break
+                break
         
-        # Add given_name field to rapidfuzz results 
-        for result in direct_results_with_rapidfuzz:
-            result['given_name'] = compute_given_name(result)
+        # Use the final results from the last iteration
+        final_direct_results = direct_results if 'direct_results' in locals() else []
+        final_rapidfuzz_results = direct_results_with_rapidfuzz if 'direct_results_with_rapidfuzz' in locals() else []
         
         # Prepare results
         results = {
@@ -141,20 +236,55 @@ def search_products(search_string: str) -> Dict[str, Any]:
             "input_string": search_string,
             "formatted_string": formatted_string,
             "direct_search": {
-                "count": len(direct_results),
-                "results": direct_results
+                "count": len(final_direct_results),
+                "results": final_direct_results
             },
             "rapidfuzz_search": {
-                "count": len(direct_results_with_rapidfuzz),
-                "results": direct_results_with_rapidfuzz
+                "count": len(final_rapidfuzz_results),
+                "results": final_rapidfuzz_results
             }
         }
+        
+        # Add OpenAI results if available
+        if level1_result:
+            results["openai_level1"] = {
+                "model": level1_result.model,
+                "decision": level1_result.decision,
+                "rephrased_query": level1_result.rephrased_query,
+                "error": level1_result.error
+            }
+        
+        if level2_result:
+            results["openai_level2"] = {
+                "model": level2_result.model,
+                "decision": level2_result.decision,
+                "rephrased_query": level2_result.rephrased_query,
+                "error": level2_result.error
+            }
         
         # Close MongoDB connection
         client.close()
         
-        print(f"Direct search found {len(direct_results)} results")
-        print(f"RapidFuzz scoring applied to {len(direct_results_with_rapidfuzz)} results")
+        # Export OpenAI conversations if AI was used
+        if level1_result or level2_result:
+            print("Exporting OpenAI conversation histories...")
+            conversation_files = assistant.export_conversations()
+            if conversation_files:
+                print(f"Conversation files exported: {list(conversation_files.values())}")
+        
+        print(f"Direct search found {len(final_direct_results)} results")
+        print(f"RapidFuzz scoring applied to {len(final_rapidfuzz_results)} results")
+        
+        # Log OpenAI results
+        if level1_result:
+            print(f"Level 1 model decision: {level1_result.decision}")
+            if level1_result.rephrased_query:
+                print(f"Level 1 model suggested query: '{level1_result.rephrased_query}'")
+        
+        if level2_result:
+            print(f"Level 2 model decision: {level2_result.decision}")
+            if level2_result.rephrased_query:
+                print(f"Level 2 model suggested query: '{level2_result.rephrased_query}'")
         
         return results
         
@@ -232,6 +362,20 @@ def main():
     print(f"- Formatted input: '{results['formatted_string']}'")
     print(f"- Direct search: {results['direct_search']['count']} results")
     print(f"- RapidFuzz search: {results['rapidfuzz_search']['count']} results")
+    
+    # Print OpenAI summary
+    if 'openai_level1' in results:
+        level1 = results['openai_level1']
+        print(f"- Level 1 model decision: {level1['decision']}")
+        if level1.get('rephrased_query'):
+            print(f"  Suggested query: '{level1['rephrased_query']}'")
+    
+    if 'openai_level2' in results:
+        level2 = results['openai_level2']
+        print(f"- Level 2 model decision: {level2['decision']}")
+        if level2.get('rephrased_query'):
+            print(f"  Suggested query: '{level2['rephrased_query']}'")
+    
     print(f"- Results saved to: {output_file}")
     
     # Print top 10 direct search results

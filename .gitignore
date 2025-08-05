@@ -24,3 +24,5 @@ batch_search_results_*.csv
 demo_search_results.json
 test_demo_search_results.json
 example_search_results_with_given_name.json
+openai_level1_conversation.json
+openai_level2_conversation.json

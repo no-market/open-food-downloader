@@ -15,10 +15,12 @@ run:
 search:
 	@if [ ! -d "venv" ]; then echo "Virtual environment not found. Run 'make install' first."; exit 1; fi
 	@if [ -z "$(SEARCH_STRING)" ]; then echo "Usage: make search SEARCH_STRING='your search term'"; exit 1; fi
+	@echo "🔍 Running search (set OPENAI_API_KEY for enhanced results)..."
 	. venv/bin/activate && python3 search_products.py "$(SEARCH_STRING)"
 
 search-batch:
 	@if [ ! -d "venv" ]; then echo "Virtual environment not found. Run 'make install' first."; exit 1; fi
+	@echo "🔍 Running batch search (set OPENAI_API_KEY for enhanced results)..."
 	. venv/bin/activate && python3 search_batch.py
 
 setup-local:
@@ -27,6 +29,7 @@ setup-local:
 	@echo "✅ Environment variables ready to be loaded from .env"
 	@echo "💡 Use 'make run-local' to run downloader with these environment variables"
 	@echo "💡 Use 'make search-local SEARCH_STRING=\"your search\"' to run search with these environment variables"
+	@echo "💡 Optional: Add OPENAI_API_KEY=your_api_key to .env for OpenAI-enhanced search results"
 
 run-local: setup-local
 	@if [ ! -d "venv" ]; then echo "Virtual environment not found. Run 'make install' first."; exit 1; fi

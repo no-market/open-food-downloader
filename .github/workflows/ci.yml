@@ -64,6 +64,13 @@ jobs:
         echo "🐍 **Python Version**: ${{ matrix.python-version }}" >> $GITHUB_STEP_SUMMARY
         echo "⏰ **Timestamp**: $(date -u)" >> $GITHUB_STEP_SUMMARY
         
+        # Add OpenAI integration status
+        if [ -n "$OPENAI_API_KEY" ]; then
+          echo "🤖 **OpenAI Integration**: Enabled (API key available)" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "🤖 **OpenAI Integration**: Disabled (API key not set - tests use mocked functionality)" >> $GITHUB_STEP_SUMMARY
+        fi
+        
   lint:
     name: Code Quality Check
     runs-on: ubuntu-latest

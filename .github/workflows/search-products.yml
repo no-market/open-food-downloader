@@ -41,10 +41,16 @@ jobs:
     - name: Search products catalog
       env:
         MONGO_URI: ${{ secrets.MONGO_URI }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       run: |
         echo "🔍 Starting product search..."
         echo "Search string: '${{ github.event.inputs.search_string }}'"
         echo "Description: ${{ github.event.inputs.description }}"
+        if [ -n "$OPENAI_API_KEY" ]; then
+          echo "🤖 OpenAI integration: Enabled"
+        else
+          echo "🤖 OpenAI integration: Disabled (no API key)"
+        fi
         echo ""
         
         # Activate virtual environment and run search
@@ -57,6 +63,7 @@ jobs:
       run: |
         echo "Generated files:"
         ls -la search_results_*.json || echo "No search result files found"
+        ls -la openai_*_conversation.json || echo "No conversation files found"
         
     - name: Upload search results
       uses: actions/upload-artifact@v4
@@ -65,6 +72,7 @@ jobs:
         name: product-search-results
         path: |
           search_results_*.json
+          openai_*_conversation.json
         retention-days: 30
         
     - name: Upload search summary
@@ -90,6 +98,21 @@ jobs:
             WORD_COUNT=$(jq -r '.word_search.count // 0' "$RESULT_FILE" 2>/dev/null || echo "0")
             echo "  - **Direct Search Results**: $DIRECT_COUNT products found" >> $GITHUB_STEP_SUMMARY
             echo "  - **Word-based Search Results**: $WORD_COUNT products found" >> $GITHUB_STEP_SUMMARY
+            
+            # Check for OpenAI results
+            if jq -e '.openai_level1' "$RESULT_FILE" > /dev/null 2>&1; then
+              LEVEL1_DECISION=$(jq -r '.openai_level1.decision // "unknown"' "$RESULT_FILE" 2>/dev/null || echo "unknown")
+              LEVEL2_DECISION=$(jq -r '.openai_level2.decision // "unknown"' "$RESULT_FILE" 2>/dev/null || echo "unknown")
+              echo "  - **🤖 Level 1 Model Analysis**: $LEVEL1_DECISION" >> $GITHUB_STEP_SUMMARY
+              echo "  - **🤖 Level 2 Model Analysis**: $LEVEL2_DECISION" >> $GITHUB_STEP_SUMMARY
+              
+              # Check for conversation files
+              if [ -f openai_level1_conversation.json ] || [ -f openai_level2_conversation.json ]; then
+                echo "  - **💬 Conversation Files**: Available in artifacts" >> $GITHUB_STEP_SUMMARY
+              fi
+            else
+              echo "  - **🤖 OpenAI Integration**: Not used (high scores or no API key)" >> $GITHUB_STEP_SUMMARY
+            fi
           fi
         else
           echo "❌ **Status**: Search failed - no results file generated" >> $GITHUB_STEP_SUMMARY
