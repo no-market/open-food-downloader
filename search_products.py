@@ -301,6 +301,32 @@ def search_products(search_string: str) -> Dict[str, Any]:
             if level2_result.rephrased_query:
                 print(f"Level 2 model suggested query: '{level2_result.rephrased_query}'")
         
+        # Add match status to results for programmatic access
+        if final_rapidfuzz_results:
+            best_result = final_rapidfuzz_results[0]
+            best_score = best_result.get('rapidfuzz_score', 0)
+            
+            if best_score >= SCORE_THRESHOLD:
+                results["match_status"] = "successful"
+                results["match_confidence"] = "high"
+                results["best_match"] = {
+                    "score": best_score,
+                    "threshold": SCORE_THRESHOLD,
+                    "product": best_result
+                }
+            else:
+                results["match_status"] = "low_confidence"
+                results["match_confidence"] = "low"
+                results["best_match"] = {
+                    "score": best_score,
+                    "threshold": SCORE_THRESHOLD,
+                    "product": best_result
+                }
+        else:
+            results["match_status"] = "no_match"
+            results["match_confidence"] = "none"
+            results["best_match"] = None
+        
         return results
         
     except ImportError:
@@ -393,10 +419,10 @@ def main():
     
     print(f"- Results saved to: {output_file}")
     
-    # Print top 10 direct search results
+    # Print top 3 direct search results
     if results['direct_search']['results']:
-        print("\nTop 10 direct search results (MongoDB scoring):")
-        for i, result in enumerate(results['direct_search']['results'][:10]):
+        print("\nTop 3 direct search results (MongoDB scoring):")
+        for i, result in enumerate(results['direct_search']['results'][:3]):
             score = result.get('score', 0)
             product_id = result.get('_id', 'Unknown')
             
@@ -419,10 +445,10 @@ def main():
             print(f"     Text: {result.get('search_string', '')}")
             print()
     
-    # Print top 10 RapidFuzz results
+    # Print top 3 RapidFuzz results
     if results['rapidfuzz_search']['results']:
-        print("\nTop 10 RapidFuzz search results (Custom relevance scoring):")
-        for i, result in enumerate(results['rapidfuzz_search']['results'][:10]):
+        print("\nTop 3 RapidFuzz search results (Custom relevance scoring):")
+        for i, result in enumerate(results['rapidfuzz_search']['results'][:3]):
             mongo_score = result.get('score', 0)
             rapidfuzz_score = result.get('rapidfuzz_score', 0)
             product_id = result.get('_id', 'Unknown')
@@ -445,6 +471,68 @@ def main():
             print(f"     Labels: {', '.join(labels) if labels else 'N/A'}")
             print(f"     Text: {result.get('search_string', '')}")
             print()
+    
+    # Print final search result summary
+    print("=" * 60)
+    print("SEARCH RESULT SUMMARY")
+    print("=" * 60)
+    
+    # Get match status from results
+    match_status = results.get('match_status', 'unknown')
+    best_match = results.get('best_match')
+    
+    if match_status == "successful":
+        print("✅ SUCCESSFUL MATCH FOUND")
+        if best_match:
+            print(f"Score: {best_match['score']:.1f} (threshold: {best_match['threshold']})")
+            best_result = best_match['product']
+            print(f"Matched Product: {best_result.get('given_name', 'N/A')}")
+            
+            # Show key matching details
+            unique_product_names = extract_product_names(best_result.get('product_name', []))
+            if unique_product_names:
+                print(f"Product Names: {', '.join(unique_product_names)}")
+            
+            brands = best_result.get('brands', '')
+            if brands:
+                print(f"Brand: {brands}")
+                
+            quantity = best_result.get('quantity', '')
+            if quantity:
+                print(f"Quantity: {quantity}")
+                
+    elif match_status == "low_confidence":
+        print("⚠️  LOW CONFIDENCE MATCH")
+        if best_match:
+            print(f"Score: {best_match['score']:.1f} (threshold: {best_match['threshold']})")
+            best_result = best_match['product']
+            print(f"Best Match: {best_result.get('given_name', 'N/A')}")
+        print("Recommendation: The search found results but confidence is low.")
+        
+        # Show AI assistance results if available
+        if 'openai_level1' in results or 'openai_level2' in results:
+            print("AI assistance was used but could not improve the match quality.")
+            
+    else:  # no_match
+        print("❌ NO MATCH FOUND")
+        print("No products were found matching the search criteria.")
+        
+        # Show AI assistance results if available
+        if 'openai_level1' in results:
+            level1 = results['openai_level1']
+            if level1['decision'] == 'not_a_product':
+                print("AI Analysis: This query does not appear to be a food product.")
+            elif level1.get('rephrased_query'):
+                print(f"AI suggested alternative search: '{level1['rephrased_query']}'")
+        
+        if 'openai_level2' in results:
+            level2 = results['openai_level2']
+            if level2['decision'] == 'not_a_product':
+                print("AI Analysis: This query does not appear to be a food product.")
+            elif level2.get('rephrased_query'):
+                print(f"AI suggested alternative search: '{level2['rephrased_query']}'")
+    
+    print("=" * 60)
 
 if __name__ == "__main__":
     main()
