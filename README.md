@@ -155,6 +155,11 @@ The download workflow uploads category output files as artifacts:
 - `unique_categories.json` - all unique category names found in processed products
 - `unique_last_categories.json` - each direct category mapped to its full category path
 - `direct_category_product_counts.json` - each direct category mapped to the number of products assigned directly to that category
+- `direct_category_details.json` - each direct category mapped to its full path, direct product count, detected language, and language confidence score
+
+Direct category counts only include products assigned directly to that category. Parent categories in the path are not incremented for child products.
+
+The downloader uses the Hugging Face `facebook/fasttext-language-identification` model to detect category language from the category name plus full path. Set `CATEGORY_LANGUAGE_DETECTION=false` to skip model loading and leave language fields empty.
 
 ### Search Results
 Search results are saved as JSON files with the following structure:

@@ -9,6 +9,40 @@ import os
 import sys
 
 
+def get_download_limit():
+    """Read optional download limit from DOWNLOAD_LIMIT."""
+    raw_limit = os.getenv('DOWNLOAD_LIMIT', '').strip()
+    if not raw_limit:
+        return None
+
+    try:
+        limit = int(raw_limit)
+    except ValueError:
+        print(f"Warning: DOWNLOAD_LIMIT='{raw_limit}' is not a valid integer. Processing all records.")
+        return None
+
+    if limit <= 0:
+        return None
+
+    return limit
+
+
+def get_download_limit_type():
+    """Read whether DOWNLOAD_LIMIT applies to products or categories."""
+    limit_type = os.getenv('DOWNLOAD_LIMIT_TYPE', 'products').strip().lower()
+    if limit_type not in ('products', 'categories'):
+        print(f"Warning: DOWNLOAD_LIMIT_TYPE='{limit_type}' is invalid. Using 'products'.")
+        return 'products'
+    return limit_type
+
+
+def limit_mapping_items(mapping: dict, limit):
+    """Return mapping capped to the first limit items, or unchanged when no limit is set."""
+    if not limit:
+        return mapping
+    return dict(list(mapping.items())[:limit])
+
+
 def is_valid_product(record):
     """
     Check if a product meets the validation criteria:
@@ -71,6 +105,58 @@ def get_direct_category(category_list):
     return filtered_categories[-1]
 
 
+def load_category_language_model():
+    """Load the Hugging Face fastText language identification model."""
+    if os.getenv('CATEGORY_LANGUAGE_DETECTION', 'true').lower() not in ('true', '1', 'yes', 'on'):
+        print("Category language detection is disabled")
+        return None
+
+    repo_id = os.getenv('CATEGORY_LANGUAGE_MODEL_REPO', 'facebook/fasttext-language-identification')
+    filename = os.getenv('CATEGORY_LANGUAGE_MODEL_FILE', 'model.bin')
+
+    try:
+        import fasttext
+        from huggingface_hub import hf_hub_download
+
+        print(f"Loading category language model from {repo_id}/{filename}...")
+        model_path = hf_hub_download(repo_id=repo_id, filename=filename)
+        return fasttext.load_model(model_path)
+    except Exception as e:
+        print(f"Warning: Could not load category language model: {e}")
+        return None
+
+
+def predict_category_language(model, category_name, category_path):
+    """Predict language for a category using its name plus full path."""
+    if model is None:
+        return None, None
+
+    text = f"{category_name} {category_path}".replace("\n", " ").strip()
+    if not text:
+        return None, None
+
+    labels, scores = model.predict(text, k=1)
+    if not labels:
+        return None, None
+
+    language = labels[0].replace('__label__', '')
+    return language, float(scores[0])
+
+
+def build_direct_category_details(unique_last_categories, direct_category_product_counts, model=None):
+    """Build direct category details with path, product count, and language prediction."""
+    details = {}
+    for category_name, category_path in sorted(unique_last_categories.items()):
+        language, language_score = predict_category_language(model, category_name, category_path)
+        details[category_name] = {
+            'path': category_path,
+            'product_count': direct_category_product_counts.get(category_name, 0),
+            'language': language,
+            'language_score': language_score,
+        }
+    return details
+
+
 def download_from_huggingface():
     """Download records from the OpenFoodFacts dataset on Hugging Face and optionally store in MongoDB."""
     try:
@@ -124,6 +210,11 @@ def download_from_huggingface():
             print("Extracting and storing records in MongoDB...")
         else:
             print("Extracting records (MongoDB storage disabled)...")
+        download_limit = get_download_limit()
+        download_limit_type = get_download_limit_type()
+        if download_limit:
+            print(f"Download limit: {download_limit} {download_limit_type}")
+
         langs_map = {}
         
         unique_food_groups = set()  # Collect unique food group tags
@@ -133,6 +224,7 @@ def download_from_huggingface():
         
         # Process records and optionally store directly in MongoDB
         skipped_count = 0
+        processed_count = 0
         for i, record in enumerate(dataset):
             # if i >= 5:
             #     break
@@ -246,13 +338,20 @@ def download_from_huggingface():
                 print(f"Record {i + 1}: {product.get('_id')} - Stored in MongoDB")
             else:
                 print(f"Record {i + 1}: {product.get('_id')} - Processed (MongoDB storage disabled)")
-            
+
+            processed_count += 1
+            if download_limit and download_limit_type == 'products' and processed_count >= download_limit:
+                print(f"Reached product download limit ({download_limit}). Stopping early.")
+                break
+            if download_limit and download_limit_type == 'categories' and len(unique_last_categories) >= download_limit:
+                print(f"Reached category download limit ({download_limit}). Stopping early.")
+                break
+
 
         print("Language distribution:")
         for lang, count in langs_map.items():
             print(f" - {lang}: {count}")
         
-        processed_count = i + 1 - skipped_count  # Total processed minus skipped
         if save_to_mongo:
             print(f"Successfully processed and stored {processed_count} records in MongoDB")
         else:
@@ -261,10 +360,26 @@ def download_from_huggingface():
         if skipped_count > 0:
             print(f"Skipped {skipped_count} invalid products (missing valid name or categories with ':')")
 
+        if download_limit and download_limit_type == 'categories':
+            unique_last_categories = limit_mapping_items(unique_last_categories, download_limit)
+            direct_category_product_counts = {
+                category: direct_category_product_counts[category]
+                for category in unique_last_categories
+                if category in direct_category_product_counts
+            }
+
+        language_model = load_category_language_model()
+        direct_category_details = build_direct_category_details(
+            unique_last_categories,
+            direct_category_product_counts,
+            language_model,
+        )
+
         save_unique_food_groups_to_json(unique_food_groups)
         save_unique_categories_to_json(unique_categories)
         save_unique_last_categories_to_json(unique_last_categories)
         save_direct_category_product_counts_to_json(direct_category_product_counts)
+        save_direct_category_details_to_json(direct_category_details)
         
         # Store categories in separate collection if MongoDB is enabled
         if save_to_mongo and collection is not None:
@@ -339,6 +454,18 @@ def save_direct_category_product_counts_to_json(direct_category_product_counts: 
         print(f"Direct category product counts ({len(direct_category_product_counts)} items) saved to '{filename}'")
     except Exception as e:
         print(f"Error saving direct category product counts: {e}")
+
+
+def save_direct_category_details_to_json(direct_category_details: dict) -> None:
+    """Save direct category path, product count, and language details to a separate file."""
+    filename = "direct_category_details.json"
+
+    try:
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(direct_category_details, f, indent=2, ensure_ascii=False, sort_keys=True)
+        print(f"Direct category details ({len(direct_category_details)} items) saved to '{filename}'")
+    except Exception as e:
+        print(f"Error saving direct category details: {e}")
 
 
 def store_categories_collection(db, unique_last_categories: dict) -> None:

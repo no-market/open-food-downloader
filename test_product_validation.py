@@ -5,7 +5,12 @@ Tests the is_valid_product function with various product scenarios.
 """
 
 import pytest
-from download_products import get_direct_category, is_valid_product
+from download_products import (
+    build_direct_category_details,
+    get_direct_category,
+    is_valid_product,
+    limit_mapping_items,
+)
 
 
 class TestProductValidation:
@@ -220,3 +225,47 @@ class TestDirectCategory:
         ]
 
         assert get_direct_category(category_list) is None
+
+    def test_build_direct_category_details_includes_path_count_and_language(self):
+        class FakeLanguageModel:
+            def predict(self, text, k=1):
+                return ['__label__pol_Latn'], [0.98]
+
+        details = build_direct_category_details(
+            {'Herbaty aromatyzowane': 'Napoje > Herbata > Herbaty aromatyzowane'},
+            {'Herbaty aromatyzowane': 3},
+            FakeLanguageModel(),
+        )
+
+        assert details == {
+            'Herbaty aromatyzowane': {
+                'path': 'Napoje > Herbata > Herbaty aromatyzowane',
+                'product_count': 3,
+                'language': 'pol_Latn',
+                'language_score': 0.98,
+            }
+        }
+
+    def test_build_direct_category_details_without_model_has_empty_language(self):
+        details = build_direct_category_details(
+            {'Chocolate Spreads': 'Food > Spreads > Chocolate Spreads'},
+            {'Chocolate Spreads': 2},
+            None,
+        )
+
+        assert details['Chocolate Spreads']['path'] == 'Food > Spreads > Chocolate Spreads'
+        assert details['Chocolate Spreads']['product_count'] == 2
+        assert details['Chocolate Spreads']['language'] is None
+        assert details['Chocolate Spreads']['language_score'] is None
+
+    def test_limit_mapping_items_caps_output(self):
+        categories = {
+            'A': 'Food > A',
+            'B': 'Food > B',
+            'C': 'Food > C',
+        }
+
+        assert limit_mapping_items(categories, 2) == {
+            'A': 'Food > A',
+            'B': 'Food > B',
+        }
