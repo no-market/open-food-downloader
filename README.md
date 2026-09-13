@@ -150,6 +150,12 @@ The script stores product records directly in a MongoDB collection named `produc
 - **Search String** - Concatenated searchable text from multiple fields
 - And other OpenFoodFacts fields
 
+### Category Output Files
+The download workflow uploads category output files as artifacts:
+- `unique_categories.json` - all unique category names found in processed products
+- `unique_last_categories.json` - each direct category mapped to its full category path
+- `direct_category_product_counts.json` - each direct category mapped to the number of products assigned directly to that category
+
 ### Search Results
 Search results are saved as JSON files with the following structure:
 ```json
