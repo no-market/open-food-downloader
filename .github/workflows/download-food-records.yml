@@ -53,6 +53,14 @@ jobs:
           
     - name: Install dependencies
       run: make install
+
+    - name: Prepare artifact placeholders
+      run: |
+        printf '[]\n' > unique_food_groups.json
+        printf '[]\n' > unique_categories.json
+        printf '{}\n' > unique_last_categories.json
+        printf '{}\n' > direct_category_product_counts.json
+        printf '{}\n' > direct_category_details.json
         
     - name: Download and display food records
       env:

@@ -157,8 +157,28 @@ def build_direct_category_details(unique_last_categories, direct_category_produc
     return details
 
 
+def save_category_output_files(unique_food_groups, unique_categories, unique_last_categories, direct_category_product_counts):
+    """Save all category-related output files."""
+    direct_category_details = build_direct_category_details(
+        unique_last_categories,
+        direct_category_product_counts,
+        load_category_language_model(),
+    )
+
+    save_unique_food_groups_to_json(unique_food_groups)
+    save_unique_categories_to_json(unique_categories)
+    save_unique_last_categories_to_json(unique_last_categories)
+    save_direct_category_product_counts_to_json(direct_category_product_counts)
+    save_direct_category_details_to_json(direct_category_details)
+
+
 def download_from_huggingface():
     """Download records from the OpenFoodFacts dataset on Hugging Face and optionally store in MongoDB."""
+    unique_food_groups = set()
+    unique_categories = set()
+    unique_last_categories = {}
+    direct_category_product_counts = {}
+
     try:
         from datasets import load_dataset
         
@@ -372,18 +392,12 @@ def download_from_huggingface():
                 if category in direct_category_product_counts
             }
 
-        language_model = load_category_language_model()
-        direct_category_details = build_direct_category_details(
+        save_category_output_files(
+            unique_food_groups,
+            unique_categories,
             unique_last_categories,
             direct_category_product_counts,
-            language_model,
         )
-
-        save_unique_food_groups_to_json(unique_food_groups)
-        save_unique_categories_to_json(unique_categories)
-        save_unique_last_categories_to_json(unique_last_categories)
-        save_direct_category_product_counts_to_json(direct_category_product_counts)
-        save_direct_category_details_to_json(direct_category_details)
         
         # Store categories in separate collection if MongoDB is enabled
         if save_to_mongo and collection is not None:
@@ -395,9 +409,21 @@ def download_from_huggingface():
 
     except ImportError:
         print("Required packages not installed. Please run: pip install -r requirements.txt")
+        save_category_output_files(
+            unique_food_groups,
+            unique_categories,
+            unique_last_categories,
+            direct_category_product_counts,
+        )
         return []
     except Exception as e:
         print(f"Error downloading from Hugging Face: {e}")
+        save_category_output_files(
+            unique_food_groups,
+            unique_categories,
+            unique_last_categories,
+            direct_category_product_counts,
+        )
         return []
 
 
