@@ -8,7 +8,6 @@ on:
       - 'requirements.txt'
       - 'Makefile'
       - '.github/workflows/ci.yml'
-      - '.github/workflows/download-food-records.yml'
   push:
     branches: [ main, master ]
     paths:
@@ -16,7 +15,6 @@ on:
       - 'requirements.txt'
       - 'Makefile'
       - '.github/workflows/ci.yml'
-      - '.github/workflows/download-food-records.yml'
 
 jobs:
   test:
