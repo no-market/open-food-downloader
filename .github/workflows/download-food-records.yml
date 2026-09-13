@@ -68,6 +68,7 @@ jobs:
           categories_hierarchy.json
           unique_categories.json
           unique_last_categories.json
+          direct_category_product_counts.json
         retention-days: 30
         
     - name: Upload run summary
@@ -89,4 +90,5 @@ jobs:
         echo "  - **Unique Food Groups**: unique_food_groups.json" >> $GITHUB_STEP_SUMMARY
         echo "  - **Categories Hierarchy**: categories_hierarchy.json" >> $GITHUB_STEP_SUMMARY
         echo "  - **Unique Categories**: unique_categories.json" >> $GITHUB_STEP_SUMMARY
+        echo "  - **Direct Category Product Counts**: direct_category_product_counts.json" >> $GITHUB_STEP_SUMMARY
         echo "⏰ **Timestamp**: $(date -u)" >> $GITHUB_STEP_SUMMARY

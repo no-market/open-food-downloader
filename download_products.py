@@ -58,6 +58,19 @@ def is_valid_product(record):
     return has_valid_category
 
 
+def get_direct_category(category_list):
+    """
+    Return the direct product category from a parsed category path.
+
+    The direct category is the last non-tag category in the product's category
+    path. Parent categories are not counted here.
+    """
+    filtered_categories = [cat for cat in category_list if ':' not in cat]
+    if not filtered_categories:
+        return None
+    return filtered_categories[-1]
+
+
 def download_from_huggingface():
     """Download records from the OpenFoodFacts dataset on Hugging Face and optionally store in MongoDB."""
     try:
@@ -116,6 +129,7 @@ def download_from_huggingface():
         unique_food_groups = set()  # Collect unique food group tags
         unique_categories = set()  # Collect unique category tags
         unique_last_categories = {}  # Collect unique last category mapping to full path
+        direct_category_product_counts = {}  # Count products by their direct category only
         
         # Process records and optionally store directly in MongoDB
         skipped_count = 0
@@ -214,18 +228,16 @@ def download_from_huggingface():
                 
                 # Build mapping from last category to full path, skipping categories with ":"
                 if category_list:
-                    # Filter out categories containing ":"
-                    filtered_categories = [cat for cat in category_list if ':' not in cat]
-                    
-                    if filtered_categories:
-                        # Get the last category
-                        last_category = filtered_categories[-1]
+                    last_category = get_direct_category(category_list)
                         
+                    if last_category:
                         # Build full path using ">" separator
+                        filtered_categories = [cat for cat in category_list if ':' not in cat]
                         full_path = " > ".join(filtered_categories)
                         
                         # Store the mapping
                         unique_last_categories[last_category] = full_path
+                        direct_category_product_counts[last_category] = direct_category_product_counts.get(last_category, 0) + 1
 
             lang = record.get('lang', "None_LANG_ATTRIBUTE")
             langs_map[lang] = langs_map.get(lang, 0) + 1
@@ -252,6 +264,7 @@ def download_from_huggingface():
         save_unique_food_groups_to_json(unique_food_groups)
         save_unique_categories_to_json(unique_categories)
         save_unique_last_categories_to_json(unique_last_categories)
+        save_direct_category_product_counts_to_json(direct_category_product_counts)
         
         # Store categories in separate collection if MongoDB is enabled
         if save_to_mongo and collection is not None:
@@ -314,6 +327,18 @@ def save_unique_last_categories_to_json(unique_last_categories: dict) -> None:
         print(f"Unique last categories ({len(unique_last_categories)} items) saved to '{filename}'")
     except Exception as e:
         print(f"Error saving unique last categories: {e}")
+
+
+def save_direct_category_product_counts_to_json(direct_category_product_counts: dict) -> None:
+    """Save product counts grouped by direct category to a separate file."""
+    filename = "direct_category_product_counts.json"
+    
+    try:
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(direct_category_product_counts, f, indent=2, ensure_ascii=False, sort_keys=True)
+        print(f"Direct category product counts ({len(direct_category_product_counts)} items) saved to '{filename}'")
+    except Exception as e:
+        print(f"Error saving direct category product counts: {e}")
 
 
 def store_categories_collection(db, unique_last_categories: dict) -> None:

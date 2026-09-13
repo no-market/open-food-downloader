@@ -5,7 +5,7 @@ Tests the is_valid_product function with various product scenarios.
 """
 
 import pytest
-from download_products import is_valid_product
+from download_products import get_direct_category, is_valid_product
 
 
 class TestProductValidation:
@@ -185,3 +185,38 @@ class TestProductValidation:
             'categories': 'en:spreads,fr:pates-a-tartiner,de:brotaufstriche,es:untables'
         }
         assert is_valid_product(record) == False
+
+
+class TestDirectCategory:
+    """Test direct category extraction for product counts."""
+
+    def test_get_direct_category_uses_last_non_tag_category(self):
+        category_list = [
+            'Food',
+            'Spreads',
+            'en:chocolate-spreads',
+            'Hazelnut Spreads',
+        ]
+
+        assert get_direct_category(category_list) == 'Hazelnut Spreads'
+
+    def test_get_direct_category_does_not_return_parent_category(self):
+        category_list = [
+            'Food',
+            'Spreads',
+            'Chocolate Spreads',
+        ]
+
+        direct_category = get_direct_category(category_list)
+
+        assert direct_category == 'Chocolate Spreads'
+        assert direct_category != 'Food'
+        assert direct_category != 'Spreads'
+
+    def test_get_direct_category_returns_none_for_tag_only_categories(self):
+        category_list = [
+            'en:food',
+            'fr:pates-a-tartiner',
+        ]
+
+        assert get_direct_category(category_list) is None
