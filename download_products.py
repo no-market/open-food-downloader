@@ -177,22 +177,26 @@ def download_from_huggingface():
             # Get MongoDB URI from environment variable
             mongo_uri = os.getenv('MONGO_URI')
             if not mongo_uri:
-                print("Error: MONGO_URI environment variable not set")
-                print("Please set the MongoDB connection URI in the MONGO_URI environment variable")
-                return []
+                print("Warning: MONGO_URI environment variable not set")
+                print("Continuing without MongoDB storage so artifact files can still be generated")
+                save_to_mongo = False
             
             # Initialize MongoDB connection
-            try:
-                print(f"Connecting to MongoDB...")
-                client = MongoClient(mongo_uri)
-                # Test connection
-                client.admin.command('ping')
-                db = client.get_database()  # Use default database from URI or 'test'
-                collection = db['products-catalog']
-                print("Successfully connected to MongoDB")
-            except (ConnectionFailure, ConfigurationError) as e:
-                print(f"Error connecting to MongoDB: {e}")
-                return []
+            if save_to_mongo:
+                try:
+                    print(f"Connecting to MongoDB...")
+                    client = MongoClient(mongo_uri)
+                    # Test connection
+                    client.admin.command('ping')
+                    db = client.get_database()  # Use default database from URI or 'test'
+                    collection = db['products-catalog']
+                    print("Successfully connected to MongoDB")
+                except (ConnectionFailure, ConfigurationError) as e:
+                    print(f"Warning: Error connecting to MongoDB: {e}")
+                    print("Continuing without MongoDB storage so artifact files can still be generated")
+                    save_to_mongo = False
+                    client = None
+                    collection = None
         else:
             print("SAVE_TO_MONGO is disabled - data will be processed but not stored in MongoDB")
         
