@@ -45,6 +45,8 @@ Set the MongoDB connection URI using the environment variable:
 
 Optional environment variables:
 - `SAVE_TO_MONGO` - Set to `false` to disable MongoDB storage (default: `true`)
+- `DOWNLOAD_LIMIT` - Maximum number of products or categories to process; use `0` or leave empty for all records (default: all)
+- `DOWNLOAD_LIMIT_TYPE` - Set to `products` or `categories` to choose what `DOWNLOAD_LIMIT` counts (default: `products`)
 - `OPENAI_API_KEY` - OpenAI API key for enhanced search assistance (optional)
 
 Example:
@@ -66,6 +68,12 @@ export MONGO_URI="mongodb://localhost:27017/openfooddb"
 
 # Run the downloader
 python3 download_products.py
+
+# Run a quick smoke test with only 25 products
+SAVE_TO_MONGO=false DOWNLOAD_LIMIT=25 DOWNLOAD_LIMIT_TYPE=products python3 download_products.py
+
+# Run until 25 unique category entries are collected
+SAVE_TO_MONGO=false DOWNLOAD_LIMIT=25 DOWNLOAD_LIMIT_TYPE=categories python3 download_products.py
 ```
 
 #### Search Products
@@ -149,6 +157,22 @@ The script stores product records directly in a MongoDB collection named `produc
 - Main Category
 - **Search String** - Concatenated searchable text from multiple fields
 - And other OpenFoodFacts fields
+
+### Category Outputs
+During downloads, the script also writes category output files:
+- `unique_categories.json` - all unique category names seen in processed products
+- `unique_last_categories.json` - last category name mapped to its full category path
+- `categories.md` - downloadable Markdown report with one section per category, including full path and ancestors
+
+When MongoDB storage is enabled, the same category structure is stored in the `categories` collection as:
+```json
+{
+  "name": "Chocolate Spreads",
+  "ancestors": ["Food", "Spreads"]
+}
+```
+
+The `Download Food Records` GitHub Action uploads these files in the `food-data-outputs` artifact. For quick testing, manually run the workflow with `download_limit` set to a positive number and choose whether it applies to `products` or `categories`; the default `0` processes the full dataset.
 
 ### Search Results
 Search results are saved as JSON files with the following structure:

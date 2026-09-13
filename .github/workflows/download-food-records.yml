@@ -16,6 +16,18 @@ on:
         options:
           - 'true'
           - 'false'
+      download_limit:
+        description: 'Maximum number of products or categories to process. Use 0 for all records.'
+        required: false
+        default: '0'
+      download_limit_type:
+        description: 'Apply the limit to products or unique categories'
+        required: false
+        default: 'products'
+        type: choice
+        options:
+          - 'products'
+          - 'categories'
 
 jobs:
   download-food-records:
@@ -46,12 +58,19 @@ jobs:
       env:
         MONGO_URI: ${{ secrets.MONGO_URI }}
         SAVE_TO_MONGO: ${{ inputs.save_to_mongo || 'true' }}
+        DOWNLOAD_LIMIT: ${{ inputs.download_limit || '0' }}
+        DOWNLOAD_LIMIT_TYPE: ${{ inputs.download_limit_type || 'products' }}
       run: |
         echo "🚀 Starting food records download..."
         if [ "$SAVE_TO_MONGO" = "true" ]; then
           echo "📊 MongoDB storage: ENABLED"
         else
           echo "📊 MongoDB storage: DISABLED"
+        fi
+        if [ "$DOWNLOAD_LIMIT" = "0" ] || [ -z "$DOWNLOAD_LIMIT" ]; then
+          echo "🔢 Download limit: all records"
+        else
+          echo "🔢 Download limit: $DOWNLOAD_LIMIT $DOWNLOAD_LIMIT_TYPE"
         fi
         make run
         echo "✅ Food records download completed!"
@@ -65,9 +84,9 @@ jobs:
           products.json
           food_groups_hierarchy.json
           unique_food_groups.json
-          categories_hierarchy.json
           unique_categories.json
           unique_last_categories.json
+          categories.md
         retention-days: 30
         
     - name: Upload run summary
@@ -76,7 +95,11 @@ jobs:
         echo "## 🍕 Food Records Download Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "✅ **Status**: Completed successfully" >> $GITHUB_STEP_SUMMARY
-        echo "📊 **Records**: 5 food product records downloaded and displayed" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ inputs.download_limit || '0' }}" = "0" ]; then
+          echo "📊 **Limit**: all records" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "📊 **Limit**: ${{ inputs.download_limit }} ${{ inputs.download_limit_type || 'products' }}" >> $GITHUB_STEP_SUMMARY
+        fi
         if [ "${{ inputs.save_to_mongo || 'true' }}" = "true" ]; then
           echo "💾 **MongoDB Storage**: ENABLED" >> $GITHUB_STEP_SUMMARY
         else
@@ -87,6 +110,7 @@ jobs:
         echo "  - **Products**: products.json" >> $GITHUB_STEP_SUMMARY
         echo "  - **Food Groups Hierarchy**: food_groups_hierarchy.json" >> $GITHUB_STEP_SUMMARY
         echo "  - **Unique Food Groups**: unique_food_groups.json" >> $GITHUB_STEP_SUMMARY
-        echo "  - **Categories Hierarchy**: categories_hierarchy.json" >> $GITHUB_STEP_SUMMARY
         echo "  - **Unique Categories**: unique_categories.json" >> $GITHUB_STEP_SUMMARY
+        echo "  - **Unique Last Categories**: unique_last_categories.json" >> $GITHUB_STEP_SUMMARY
+        echo "  - **Categories Markdown**: categories.md" >> $GITHUB_STEP_SUMMARY
         echo "⏰ **Timestamp**: $(date -u)" >> $GITHUB_STEP_SUMMARY

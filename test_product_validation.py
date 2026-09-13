@@ -5,7 +5,7 @@ Tests the is_valid_product function with various product scenarios.
 """
 
 import pytest
-from download_products import is_valid_product
+from download_products import build_categories_markdown, is_valid_product, limit_mapping_items
 
 
 class TestProductValidation:
@@ -185,3 +185,41 @@ class TestProductValidation:
             'categories': 'en:spreads,fr:pates-a-tartiner,de:brotaufstriche,es:untables'
         }
         assert is_valid_product(record) == False
+
+
+class TestCategoriesMarkdown:
+    """Test Markdown output for collected categories."""
+
+    def test_build_categories_markdown_with_paths(self):
+        categories = {
+            'Hazelnut Spreads': 'Food > Spreads > Hazelnut Spreads',
+            'Chocolate': 'Food > Sweets > Chocolate',
+        }
+
+        markdown = build_categories_markdown(categories)
+
+        assert markdown.startswith("# Product Categories")
+        assert "## Chocolate" in markdown
+        assert "- Path: Food > Sweets > Chocolate" in markdown
+        assert "- Ancestors: Food, Sweets" in markdown
+        assert "## Hazelnut Spreads" in markdown
+        assert "- Path: Food > Spreads > Hazelnut Spreads" in markdown
+        assert "- Ancestors: Food, Spreads" in markdown
+
+    def test_build_categories_markdown_empty(self):
+        markdown = build_categories_markdown({})
+
+        assert "# Product Categories" in markdown
+        assert "_No categories found._" in markdown
+
+    def test_limit_mapping_items_caps_output(self):
+        categories = {
+            'A': 'Food > A',
+            'B': 'Food > B',
+            'C': 'Food > C',
+        }
+
+        assert limit_mapping_items(categories, 2) == {
+            'A': 'Food > A',
+            'B': 'Food > B',
+        }
