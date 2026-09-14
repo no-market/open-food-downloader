@@ -258,6 +258,24 @@ class TestDirectCategory:
         assert details['Chocolate Spreads']['language'] is None
         assert details['Chocolate Spreads']['language_score'] is None
 
+    def test_build_direct_category_details_keeps_counts_when_model_fails(self):
+        class FailingLanguageModel:
+            def predict(self, text, k=1):
+                raise ValueError("model failed")
+
+        details = build_direct_category_details(
+            {'Chocolate Spreads': 'Food > Spreads > Chocolate Spreads'},
+            {'Chocolate Spreads': 2},
+            FailingLanguageModel(),
+        )
+
+        assert details['Chocolate Spreads'] == {
+            'path': 'Food > Spreads > Chocolate Spreads',
+            'product_count': 2,
+            'language': None,
+            'language_score': None,
+        }
+
     def test_limit_mapping_items_caps_output(self):
         categories = {
             'A': 'Food > A',

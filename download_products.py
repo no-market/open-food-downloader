@@ -135,7 +135,12 @@ def predict_category_language(model, category_name, category_path):
     if not text:
         return None, None
 
-    labels, scores = model.predict(text, k=1)
+    try:
+        labels, scores = model.predict(text, k=1)
+    except Exception as e:
+        print(f"Warning: Could not predict language for category '{category_name}': {e}")
+        return None, None
+
     if not labels:
         return None, None
 
@@ -159,16 +164,16 @@ def build_direct_category_details(unique_last_categories, direct_category_produc
 
 def save_category_output_files(unique_food_groups, unique_categories, unique_last_categories, direct_category_product_counts):
     """Save all category-related output files."""
+    save_unique_food_groups_to_json(unique_food_groups)
+    save_unique_categories_to_json(unique_categories)
+    save_unique_last_categories_to_json(unique_last_categories)
+    save_direct_category_product_counts_to_json(direct_category_product_counts)
+
     direct_category_details = build_direct_category_details(
         unique_last_categories,
         direct_category_product_counts,
         load_category_language_model(),
     )
-
-    save_unique_food_groups_to_json(unique_food_groups)
-    save_unique_categories_to_json(unique_categories)
-    save_unique_last_categories_to_json(unique_last_categories)
-    save_direct_category_product_counts_to_json(direct_category_product_counts)
     save_direct_category_details_to_json(direct_category_details)
 
 
