@@ -23,8 +23,7 @@ def _download_script(step: str) -> str:
     return "\n".join(line[8:] if line.startswith("        ") else line for line in lines)
 
 
-def test_download_step_requires_hf_token_before_invoking_downloader(tmp_path):
-    """A missing token stops the workflow before its downloader is invoked."""
+def _run_download_script(tmp_path, hf_token=None):
     step = _download_step()
     script = _download_script(step)
     make_marker = tmp_path / "make-was-called"
@@ -33,7 +32,10 @@ def test_download_step_requires_hf_token_before_invoking_downloader(tmp_path):
     fake_make.chmod(0o755)
 
     environment = os.environ.copy()
-    environment.pop("HF_TOKEN", None)
+    if hf_token is None:
+        environment.pop("HF_TOKEN", None)
+    else:
+        environment["HF_TOKEN"] = hf_token
     environment["PATH"] = f"{tmp_path}:{environment['PATH']}"
 
     result = subprocess.run(
@@ -43,6 +45,12 @@ def test_download_step_requires_hf_token_before_invoking_downloader(tmp_path):
         env=environment,
         text=True,
     )
+    return step, result, make_marker
+
+
+def test_download_step_requires_hf_token_before_invoking_downloader(tmp_path):
+    """A missing token stops the workflow before its downloader is invoked."""
+    _step, result, make_marker = _run_download_script(tmp_path)
 
     assert result.returncode != 0
     assert "Missing required repository secret: HF_TOKEN" in result.stdout
@@ -51,28 +59,10 @@ def test_download_step_requires_hf_token_before_invoking_downloader(tmp_path):
 
 def test_download_step_wires_hf_secret_and_does_not_print_it(tmp_path):
     """The workflow exposes the repository secret through the standard variable."""
-    step = _download_step()
-    assert "        HF_TOKEN: ${{ secrets.HF_TOKEN }}" in step
-
-    script = _download_script(step)
-    make_marker = tmp_path / "make-was-called"
-    fake_make = tmp_path / "make"
-    fake_make.write_text(f"#!/bin/sh\ntouch '{make_marker}'\n", encoding="utf-8")
-    fake_make.chmod(0o755)
-
     token = "test-token-must-not-be-printed"
-    environment = os.environ.copy()
-    environment["HF_TOKEN"] = token
-    environment["PATH"] = f"{tmp_path}:{environment['PATH']}"
+    step, result, make_marker = _run_download_script(tmp_path, hf_token=token)
 
-    result = subprocess.run(
-        ["bash", "-c", script],
-        capture_output=True,
-        check=False,
-        env=environment,
-        text=True,
-    )
-
+    assert "        HF_TOKEN: ${{ secrets.HF_TOKEN }}" in step
     assert result.returncode == 0
     assert make_marker.exists()
     assert token not in result.stdout
