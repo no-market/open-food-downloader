@@ -121,10 +121,11 @@ make search-local SEARCH_STRING='pasta'
 The repository includes GitHub Action workflows:
 
 #### Download Workflow
-1. Go to the "Actions" tab in your GitHub repository
-2. Select "Download Food Records" workflow  
-3. Click "Run workflow" button
-4. Optionally add a description for the run
+1. Add an `HF_TOKEN` repository secret containing a Hugging Face access token
+2. Go to the "Actions" tab in your GitHub repository
+3. Select "Download Food Records" workflow
+4. Click "Run workflow" button
+5. Optionally add a description for the run
 
 #### Search Workflow
 1. Go to the "Actions" tab in your GitHub repository
@@ -133,7 +134,9 @@ The repository includes GitHub Action workflows:
 4. Enter your search string (e.g., "chocolate cookies")
 5. Optionally add a description for the search
 
-Note: For GitHub Actions, you'll need to set both `MONGO_URI` and optionally `OPENAI_API_KEY` as repository secrets.
+Note: The download workflow requires the `HF_TOKEN` repository secret. It also
+requires `MONGO_URI` when MongoDB storage is enabled. `OPENAI_API_KEY` remains
+optional for the search workflows.
 
 ## Data Storage
 
