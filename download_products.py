@@ -7,55 +7,60 @@ Downloads records from the Hugging Face dataset and stores them in MongoDB.
 import json
 import os
 import sys
+from dataclasses import dataclass
+from typing import Optional
+
+
+POLISH_LANGUAGE_LABEL = 'pol_Latn'
+CATEGORY_LANGUAGE_MODEL_REPO = 'facebook/fasttext-language-identification'
+CATEGORY_LANGUAGE_MODEL_FILE = 'model.bin'
+
+
+class CategoryLanguageError(RuntimeError):
+    """Raised when category language cannot be determined reliably."""
+
+
+@dataclass(frozen=True)
+class ProductAssessment:
+    eligible: bool
+    reason: Optional[str]
+    direct_category: Optional[str]
+    detected_category_language: Optional[str]
+
+
+def _parse_categories(record):
+    categories = record.get('categories', '')
+    if not isinstance(categories, str):
+        return []
+    return [category.strip() for category in categories.split(',') if category.strip()]
+
+
+def _get_basic_rejection_reason(record):
+    product_names = record.get('product_name', [])
+    has_valid_name = isinstance(product_names, list) and any(
+        isinstance(name, dict)
+        and isinstance(name.get('text'), str)
+        and name['text'].strip()
+        for name in product_names
+    )
+    if not has_valid_name:
+        return 'missing_product_name'
+
+    category_list = _parse_categories(record)
+    has_valid_category = any(
+        ':' not in category
+        or (category.lower().startswith('pl:') and bool(category[3:]))
+        for category in category_list
+    )
+    if not has_valid_category:
+        return 'missing_valid_category'
+
+    return None
 
 
 def is_valid_product(record):
-    """
-    Check if a product meets the validation criteria:
-    - Has at least 1 not blank product_name[].text
-    - Has at least 1 not blank category which does not contain ":" or starts with "pl:" (case insensitive)
-    
-    Args:
-        record: The product record from the dataset
-        
-    Returns:
-        bool: True if product is valid, False if it should be skipped
-    """
-    # Check product names
-    product_names = record.get('product_name', [])
-    has_valid_name = False
-    
-    if isinstance(product_names, list):
-        for name_obj in product_names:
-            if isinstance(name_obj, dict) and 'text' in name_obj:
-                text = name_obj['text']
-                if text and text.strip():  # Not blank
-                    has_valid_name = True
-                    break
-    
-    if not has_valid_name:
-        return False
-    
-    # Check categories
-    categories = record.get('categories', '')
-    has_valid_category = False
-    
-    if categories:
-        # Split by comma and check each category
-        category_list = [c.strip() for c in categories.split(',') if c.strip()]
-        for category in category_list:
-            if category:
-                # Check if category starts with "pl:" (case insensitive) or has no colon
-                if category.lower().startswith('pl:'):
-                    pl_category = category[3:]  # Remove "pl:" prefix
-                    if pl_category:  # Only consider valid if non-empty after prefix removal
-                        has_valid_category = True
-                        break
-                elif ':' not in category:
-                    has_valid_category = True
-                    break
-    
-    return has_valid_category
+    """Return whether a product has a usable name and category."""
+    return _get_basic_rejection_reason(record) is None
 
 
 def get_direct_category(category_list):
@@ -71,17 +76,92 @@ def get_direct_category(category_list):
     return filtered_categories[-1]
 
 
+class ProductEligibilityFilter:
+    """Decide whether products belong to a Polish direct category."""
+
+    def __init__(self, language_model):
+        self._language_model = language_model
+        self._language_by_category = {}
+
+    def assess(self, record):
+        rejection_reason = _get_basic_rejection_reason(record)
+        if rejection_reason:
+            return ProductAssessment(False, rejection_reason, None, None)
+
+        if record.get('lang') != 'pl':
+            return ProductAssessment(False, 'non_polish_record_language', None, None)
+
+        category_list = _parse_categories(record)
+        direct_category = get_direct_category(category_list)
+        if direct_category is None:
+            return ProductAssessment(False, 'missing_direct_category', None, None)
+
+        language = self._language_by_category.get(direct_category)
+        if language is None:
+            try:
+                labels, _scores = self._language_model.predict(direct_category, k=1)
+                if not labels:
+                    raise ValueError('language model returned no labels')
+                language = labels[0].replace('__label__', '')
+            except Exception as exc:
+                raise CategoryLanguageError(
+                    f"Could not determine language for direct category '{direct_category}'"
+                ) from exc
+            self._language_by_category[direct_category] = language
+
+        return ProductAssessment(
+            eligible=language == POLISH_LANGUAGE_LABEL,
+            reason=None if language == POLISH_LANGUAGE_LABEL else 'non_polish_direct_category',
+            direct_category=direct_category,
+            detected_category_language=language,
+        )
+
+
+def write_rejected_product_jsonl(stream, record, assessment):
+    """Write one rejected-product diagnostic as a JSON Lines record."""
+    rejection = {
+        'code': record.get('code'),
+        'reason': assessment.reason,
+        'record_language': record.get('lang'),
+        'direct_category': assessment.direct_category,
+        'detected_category_language': assessment.detected_category_language,
+        'categories': _parse_categories(record),
+    }
+    json.dump(rejection, stream, ensure_ascii=False)
+    stream.write('\n')
+
+
+def load_category_language_model():
+    """Load the fastText language model used for direct-category filtering."""
+    try:
+        import fasttext
+        from huggingface_hub import hf_hub_download
+
+        print(
+            "Loading category language model from "
+            f"{CATEGORY_LANGUAGE_MODEL_REPO}/{CATEGORY_LANGUAGE_MODEL_FILE}..."
+        )
+        model_path = hf_hub_download(
+            repo_id=CATEGORY_LANGUAGE_MODEL_REPO,
+            filename=CATEGORY_LANGUAGE_MODEL_FILE,
+        )
+        return fasttext.load_model(model_path)
+    except Exception as exc:
+        raise CategoryLanguageError(
+            "Could not load category language model from "
+            f"{CATEGORY_LANGUAGE_MODEL_REPO}/{CATEGORY_LANGUAGE_MODEL_FILE}"
+        ) from exc
+
+
 def download_from_huggingface():
     """Download records from the OpenFoodFacts dataset on Hugging Face and optionally store in MongoDB."""
+    client = None
+    rejected_products_file = None
     try:
         from datasets import load_dataset
         
         # Check if we should save to MongoDB (default: true)
         save_to_mongo = os.getenv('SAVE_TO_MONGO', 'true').lower() in ('true', '1', 'yes', 'on')
-        
-        save_to_mongo = os.getenv('SAVE_TO_MONGO', 'true').lower() in ('true', '1', 'yes', 'on')
-        
-        client = None
         collection = None
         
         if save_to_mongo:
@@ -118,6 +198,9 @@ def download_from_huggingface():
         
         # Filter dataset to only include Polish records using built-in filter method
         dataset = dataset.filter(lambda record: record.get('lang') == 'pl')
+
+        product_filter = ProductEligibilityFilter(load_category_language_model())
+        rejected_products_file = open('rejected_products.jsonl', 'w', encoding='utf-8')
         
         print("Dataset loaded successfully!")
         if save_to_mongo:
@@ -132,17 +215,25 @@ def download_from_huggingface():
         direct_category_product_counts = {}  # Count products by their direct category only
         
         # Process records and optionally store directly in MongoDB
-        skipped_count = 0
+        rejected_count = 0
+        processed_count = 0
         for i, record in enumerate(dataset):
             # if i >= 5:
             #     break
             
-            # Validate product before processing
-            if not is_valid_product(record):
-                skipped_count += 1
-                if skipped_count <= 10:  # Log first 10 skipped products for debugging
-                    print(f"Skipped product {record.get('code', 'unknown')}: Missing valid product name or category without ':'")
+            assessment = product_filter.assess(record)
+            if not assessment.eligible:
+                rejected_count += 1
+                write_rejected_product_jsonl(rejected_products_file, record, assessment)
+                if rejected_count <= 10:
+                    print(
+                        f"Rejected product {record.get('code', 'unknown')}: "
+                        f"{assessment.reason}"
+                    )
                 continue
+
+            processed_count += 1
+            category_list = _parse_categories(record)
             
             # Extract unique product names from product_name array
             product_names = record.get('product_name', [])
@@ -195,7 +286,7 @@ def download_from_huggingface():
                 'product_quantity': record.get('product_quantity'),
                 'quantity': record.get('quantity'),
                 'categories_tags': record.get('categories_tags'),
-                'categories': [c.strip() for c in record.get('categories', '').split(',') if record.get('categories')] if record.get('categories') else [],
+                'categories': category_list,
                 'labels_tags': record.get('labels_tags'),
                 'labels': [l.strip() for l in record.get('labels', '').split(',') if record.get('labels')] if record.get('labels') else [],
                 'popularity_key': record.get('popularity_key'),
@@ -220,15 +311,13 @@ def download_from_huggingface():
                 unique_food_groups.update(food_groups_tags)
 
             # Collect unique categories from categories field
-            categories = record.get('categories', '')
-            if categories:
-                # Split by comma and add each category to unique set
-                category_list = [c.strip() for c in categories.split(',') if c.strip()]
+            if category_list:
+                # Add each category to the unique set
                 unique_categories.update(category_list)
                 
                 # Build mapping from last category to full path, skipping categories with ":"
                 if category_list:
-                    last_category = get_direct_category(category_list)
+                    last_category = assessment.direct_category
                         
                     if last_category:
                         # Build full path using ">" separator
@@ -252,14 +341,16 @@ def download_from_huggingface():
         for lang, count in langs_map.items():
             print(f" - {lang}: {count}")
         
-        processed_count = i + 1 - skipped_count  # Total processed minus skipped
         if save_to_mongo:
             print(f"Successfully processed and stored {processed_count} records in MongoDB")
         else:
             print(f"Successfully processed {processed_count} records (MongoDB storage was disabled)")
         
-        if skipped_count > 0:
-            print(f"Skipped {skipped_count} invalid products (missing valid name or categories with ':')")
+        if rejected_count > 0:
+            print(
+                f"Rejected {rejected_count} products; details saved to "
+                "'rejected_products.jsonl'"
+            )
 
         save_unique_food_groups_to_json(unique_food_groups)
         save_unique_categories_to_json(unique_categories)
@@ -270,16 +361,19 @@ def download_from_huggingface():
         if save_to_mongo and collection is not None:
             store_categories_collection(client.get_database(), unique_last_categories)
         
-        # Close MongoDB connection if it was opened
-        if client:
-            client.close()
-
     except ImportError:
         print("Required packages not installed. Please run: pip install -r requirements.txt")
         return []
+    except CategoryLanguageError:
+        raise
     except Exception as e:
         print(f"Error downloading from Hugging Face: {e}")
         return []
+    finally:
+        if rejected_products_file:
+            rejected_products_file.close()
+        if client:
+            client.close()
 
 
 

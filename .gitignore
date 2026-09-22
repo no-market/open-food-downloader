@@ -17,6 +17,8 @@ unique_food_groups.json
 categories_hierarchy.json
 unique_categories.json
 unique_last_categories.json
+direct_category_product_counts.json
+rejected_products.jsonl
 
 # Search results
 search_results_*.json

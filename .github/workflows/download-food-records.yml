@@ -41,6 +41,9 @@ jobs:
           
     - name: Install dependencies
       run: make install
+
+    - name: Prepare rejected products artifact
+      run: touch rejected_products.jsonl
         
     - name: Download and display food records
       env:
@@ -69,6 +72,7 @@ jobs:
           unique_categories.json
           unique_last_categories.json
           direct_category_product_counts.json
+          rejected_products.jsonl
         retention-days: 30
         
     - name: Upload run summary
@@ -76,7 +80,7 @@ jobs:
       run: |
         echo "## 🍕 Food Records Download Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Status**: Completed successfully" >> $GITHUB_STEP_SUMMARY
+        echo "**Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
         echo "📊 **Records**: 5 food product records downloaded and displayed" >> $GITHUB_STEP_SUMMARY
         if [ "${{ inputs.save_to_mongo || 'true' }}" = "true" ]; then
           echo "💾 **MongoDB Storage**: ENABLED" >> $GITHUB_STEP_SUMMARY
@@ -91,4 +95,5 @@ jobs:
         echo "  - **Categories Hierarchy**: categories_hierarchy.json" >> $GITHUB_STEP_SUMMARY
         echo "  - **Unique Categories**: unique_categories.json" >> $GITHUB_STEP_SUMMARY
         echo "  - **Direct Category Product Counts**: direct_category_product_counts.json" >> $GITHUB_STEP_SUMMARY
+        echo "  - **Rejected Products**: rejected_products.jsonl" >> $GITHUB_STEP_SUMMARY
         echo "⏰ **Timestamp**: $(date -u)" >> $GITHUB_STEP_SUMMARY

@@ -4,8 +4,17 @@ Unit tests for product validation in the download_products module.
 Tests the is_valid_product function with various product scenarios.
 """
 
+import io
+import json
+
 import pytest
-from download_products import get_direct_category, is_valid_product
+from download_products import (
+    CategoryLanguageError,
+    ProductEligibilityFilter,
+    get_direct_category,
+    is_valid_product,
+    write_rejected_product_jsonl,
+)
 
 
 class TestProductValidation:
@@ -220,3 +229,178 @@ class TestDirectCategory:
         ]
 
         assert get_direct_category(category_list) is None
+
+
+class TestProductEligibilityFilter:
+    def test_accepts_product_with_polish_direct_category(self):
+        class PolishLanguageModel:
+            def predict(self, text, k=1):
+                assert text == 'Herbaty aromatyzowane'
+                return ['__label__pol_Latn'], [0.35]
+
+        product_filter = ProductEligibilityFilter(PolishLanguageModel())
+
+        assessment = product_filter.assess({
+            'code': '123',
+            'lang': 'pl',
+            'product_name': [{'lang': 'pl', 'text': 'Herbata'}],
+            'categories': 'Napoje, Herbata, Herbaty aromatyzowane',
+        })
+
+        assert assessment.eligible is True
+        assert assessment.reason is None
+        assert assessment.direct_category == 'Herbaty aromatyzowane'
+        assert assessment.detected_category_language == 'pol_Latn'
+
+    def test_reuses_language_for_repeated_direct_category(self):
+        class CountingLanguageModel:
+            def __init__(self):
+                self.inputs = []
+
+            def predict(self, text, k=1):
+                self.inputs.append(text)
+                return ['__label__pol_Latn'], [0.99]
+
+        model = CountingLanguageModel()
+        product_filter = ProductEligibilityFilter(model)
+        first_record = {
+            'lang': 'pl',
+            'product_name': [{'text': 'Pierwszy produkt'}],
+            'categories': 'Napoje, Herbaty aromatyzowane',
+        }
+        second_record = {
+            'lang': 'pl',
+            'product_name': [{'text': 'Drugi produkt'}],
+            'categories': 'Żywność, Napoje, Herbaty aromatyzowane',
+        }
+
+        assert product_filter.assess(first_record).eligible is True
+        assert product_filter.assess(second_record).eligible is True
+        assert model.inputs == ['Herbaty aromatyzowane']
+
+    def test_rejects_missing_product_name_without_using_model(self):
+        class UnusedLanguageModel:
+            def predict(self, text, k=1):
+                raise AssertionError('language model must not be used')
+
+        assessment = ProductEligibilityFilter(UnusedLanguageModel()).assess({
+            'code': 'missing-name',
+            'product_name': [{'text': '   '}],
+            'categories': 'Napoje, Herbata',
+        })
+
+        assert assessment.eligible is False
+        assert assessment.reason == 'missing_product_name'
+        assert assessment.direct_category is None
+        assert assessment.detected_category_language is None
+
+    def test_rejects_missing_valid_category_without_using_model(self):
+        class UnusedLanguageModel:
+            def predict(self, text, k=1):
+                raise AssertionError('language model must not be used')
+
+        assessment = ProductEligibilityFilter(UnusedLanguageModel()).assess({
+            'code': 'missing-category',
+            'product_name': [{'text': 'Produkt'}],
+            'categories': 'en:food, fr:boissons',
+        })
+
+        assert assessment.reason == 'missing_valid_category'
+        assert assessment.direct_category is None
+
+    def test_rejects_missing_direct_category_without_using_model(self):
+        class UnusedLanguageModel:
+            def predict(self, text, k=1):
+                raise AssertionError('language model must not be used')
+
+        assessment = ProductEligibilityFilter(UnusedLanguageModel()).assess({
+            'code': 'tag-only-category',
+            'lang': 'pl',
+            'product_name': [{'text': 'Produkt'}],
+            'categories': 'pl:żywność, pl:herbata',
+        })
+
+        assert assessment.reason == 'missing_direct_category'
+        assert assessment.direct_category is None
+
+    def test_writes_non_polish_category_rejection_as_jsonl(self):
+        class EnglishLanguageModel:
+            def predict(self, text, k=1):
+                return ['__label__eng_Latn'], [0.99]
+
+        record = {
+            'code': 'english-category',
+            'lang': 'pl',
+            'product_name': [{'text': 'Produkt'}],
+            'categories': 'Food, Tea',
+        }
+        assessment = ProductEligibilityFilter(EnglishLanguageModel()).assess(record)
+        output = io.StringIO()
+
+        write_rejected_product_jsonl(output, record, assessment)
+
+        assert json.loads(output.getvalue()) == {
+            'code': 'english-category',
+            'reason': 'non_polish_direct_category',
+            'record_language': 'pl',
+            'direct_category': 'Tea',
+            'detected_category_language': 'eng_Latn',
+            'categories': ['Food', 'Tea'],
+        }
+
+    def test_language_prediction_failure_stops_assessment(self):
+        class FailingLanguageModel:
+            def predict(self, text, k=1):
+                raise ValueError('prediction failed')
+
+        product_filter = ProductEligibilityFilter(FailingLanguageModel())
+        record = {
+            'lang': 'pl',
+            'product_name': [{'text': 'Produkt'}],
+            'categories': 'Napoje, Herbata',
+        }
+
+        with pytest.raises(CategoryLanguageError, match='Herbata'):
+            product_filter.assess(record)
+
+    def test_missing_language_prediction_stops_assessment(self):
+        class EmptyLanguageModel:
+            def predict(self, text, k=1):
+                return [], []
+
+        product_filter = ProductEligibilityFilter(EmptyLanguageModel())
+        record = {
+            'lang': 'pl',
+            'product_name': [{'text': 'Produkt'}],
+            'categories': 'Napoje, Herbata',
+        }
+
+        with pytest.raises(CategoryLanguageError, match='Herbata'):
+            product_filter.assess(record)
+
+    def test_rejects_non_polish_record_language_without_using_model(self):
+        class UnusedLanguageModel:
+            def predict(self, text, k=1):
+                raise AssertionError('language model must not be used')
+
+        assessment = ProductEligibilityFilter(UnusedLanguageModel()).assess({
+            'lang': 'en',
+            'product_name': [{'text': 'Produkt'}],
+            'categories': 'Napoje, Herbata',
+        })
+
+        assert assessment.reason == 'non_polish_record_language'
+        assert assessment.direct_category is None
+
+    def test_rejects_none_categories_as_missing_valid_category(self):
+        class UnusedLanguageModel:
+            def predict(self, text, k=1):
+                raise AssertionError('language model must not be used')
+
+        assessment = ProductEligibilityFilter(UnusedLanguageModel()).assess({
+            'lang': 'pl',
+            'product_name': [{'text': 'Produkt'}],
+            'categories': None,
+        })
+
+        assert assessment.reason == 'missing_valid_category'
