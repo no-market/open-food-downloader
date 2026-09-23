@@ -62,3 +62,18 @@ A change is complete when:
 - the appropriate test suite passes;
 - affected README or workflow contracts are updated;
 - any unverified external integration is called out in the final report.
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in GitHub Issues. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the five default triage labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+This repository uses a single-context domain layout. See
+`docs/agents/domain.md`.

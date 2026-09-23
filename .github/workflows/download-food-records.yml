@@ -47,9 +47,14 @@ jobs:
         
     - name: Download and display food records
       env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
         MONGO_URI: ${{ secrets.MONGO_URI }}
         SAVE_TO_MONGO: ${{ inputs.save_to_mongo || 'true' }}
       run: |
+        if [ -z "${HF_TOKEN:-}" ]; then
+          echo "::error::Missing required repository secret: HF_TOKEN"
+          exit 1
+        fi
         echo "🚀 Starting food records download..."
         if [ "$SAVE_TO_MONGO" = "true" ]; then
           echo "📊 MongoDB storage: ENABLED"
