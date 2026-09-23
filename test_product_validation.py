@@ -11,10 +11,12 @@ import pytest
 from download_products import (
     CategoryLanguageError,
     ProductEligibilityFilter,
+    add_category_path_to_hierarchy,
     get_direct_category,
     get_preferred_product_name,
     get_rejection_output_group,
     is_valid_product,
+    save_categories_hierarchy_to_json,
     write_eligible_product_jsonl,
     write_rejected_product_jsonl,
 )
@@ -232,6 +234,53 @@ class TestDirectCategory:
         ]
 
         assert get_direct_category(category_list) is None
+
+
+class TestCategoryHierarchy:
+    def test_merges_paths_and_skips_language_tags(self):
+        hierarchy = {}
+
+        add_category_path_to_hierarchy(
+            hierarchy,
+            ['Żywność', 'en:Plant-based foods', 'Zboża', 'Makarony'],
+        )
+        add_category_path_to_hierarchy(
+            hierarchy,
+            ['Żywność', 'Zboża', 'Płatki'],
+        )
+        add_category_path_to_hierarchy(
+            hierarchy,
+            ['Żywność', 'Warzywa', 'Cebula'],
+        )
+
+        assert hierarchy == {
+            'Żywność': {
+                'Zboża': {
+                    'Makarony': {},
+                    'Płatki': {},
+                },
+                'Warzywa': {
+                    'Cebula': {},
+                },
+            },
+        }
+
+    def test_saves_hierarchy_as_json(self, tmp_path, monkeypatch):
+        hierarchy = {
+            'Żywność': {
+                'Zboża': {
+                    'Makarony': {},
+                },
+            },
+        }
+        monkeypatch.chdir(tmp_path)
+
+        save_categories_hierarchy_to_json(hierarchy)
+
+        saved_hierarchy = json.loads(
+            (tmp_path / 'categories_hierarchy.json').read_text(encoding='utf-8')
+        )
+        assert saved_hierarchy == hierarchy
 
 
 class TestPreferredProductName:
