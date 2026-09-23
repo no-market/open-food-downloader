@@ -26,6 +26,7 @@ class ProductAssessment:
     reason: Optional[str]
     direct_category: Optional[str]
     detected_category_language: Optional[str]
+    detected_category_language_score: Optional[float]
 
 
 def _parse_categories(record):
@@ -81,39 +82,44 @@ class ProductEligibilityFilter:
 
     def __init__(self, language_model):
         self._language_model = language_model
-        self._language_by_category = {}
+        self._language_prediction_by_category = {}
 
     def assess(self, record):
         rejection_reason = _get_basic_rejection_reason(record)
         if rejection_reason:
-            return ProductAssessment(False, rejection_reason, None, None)
+            return ProductAssessment(False, rejection_reason, None, None, None)
 
         if record.get('lang') != 'pl':
-            return ProductAssessment(False, 'non_polish_record_language', None, None)
+            return ProductAssessment(False, 'non_polish_record_language', None, None, None)
 
         category_list = _parse_categories(record)
         direct_category = get_direct_category(category_list)
         if direct_category is None:
-            return ProductAssessment(False, 'missing_direct_category', None, None)
+            return ProductAssessment(False, 'missing_direct_category', None, None, None)
 
-        language = self._language_by_category.get(direct_category)
-        if language is None:
+        prediction = self._language_prediction_by_category.get(direct_category)
+        if prediction is None:
             try:
-                labels, _scores = self._language_model.predict(direct_category, k=1)
-                if not labels:
-                    raise ValueError('language model returned no labels')
+                labels, scores = self._language_model.predict(direct_category, k=1)
+                if not labels or not scores:
+                    raise ValueError('language model returned no prediction')
                 language = labels[0].replace('__label__', '')
+                language_score = float(scores[0])
             except Exception as exc:
                 raise CategoryLanguageError(
                     f"Could not determine language for direct category '{direct_category}'"
                 ) from exc
-            self._language_by_category[direct_category] = language
+            prediction = (language, language_score)
+            self._language_prediction_by_category[direct_category] = prediction
+
+        language, language_score = prediction
 
         return ProductAssessment(
             eligible=language == POLISH_LANGUAGE_LABEL,
             reason=None if language == POLISH_LANGUAGE_LABEL else 'non_polish_direct_category',
             direct_category=direct_category,
             detected_category_language=language,
+            detected_category_language_score=language_score,
         )
 
 
@@ -123,8 +129,10 @@ def write_rejected_product_jsonl(stream, record, assessment):
         'code': record.get('code'),
         'reason': assessment.reason,
         'record_language': record.get('lang'),
+        'product_name': record.get('product_name'),
         'direct_category': assessment.direct_category,
         'detected_category_language': assessment.detected_category_language,
+        'detected_category_language_score': assessment.detected_category_language_score,
         'categories': _parse_categories(record),
     }
     json.dump(rejection, stream, ensure_ascii=False)

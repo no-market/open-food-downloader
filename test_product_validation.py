@@ -251,6 +251,7 @@ class TestProductEligibilityFilter:
         assert assessment.reason is None
         assert assessment.direct_category == 'Herbaty aromatyzowane'
         assert assessment.detected_category_language == 'pol_Latn'
+        assert assessment.detected_category_language_score == pytest.approx(0.35)
 
     def test_reuses_language_for_repeated_direct_category(self):
         class CountingLanguageModel:
@@ -274,8 +275,13 @@ class TestProductEligibilityFilter:
             'categories': 'Żywność, Napoje, Herbaty aromatyzowane',
         }
 
-        assert product_filter.assess(first_record).eligible is True
-        assert product_filter.assess(second_record).eligible is True
+        first_assessment = product_filter.assess(first_record)
+        second_assessment = product_filter.assess(second_record)
+
+        assert first_assessment.eligible is True
+        assert second_assessment.eligible is True
+        assert first_assessment.detected_category_language_score == pytest.approx(0.99)
+        assert second_assessment.detected_category_language_score == pytest.approx(0.99)
         assert model.inputs == ['Herbaty aromatyzowane']
 
     def test_rejects_missing_product_name_without_using_model(self):
@@ -343,8 +349,10 @@ class TestProductEligibilityFilter:
             'code': 'english-category',
             'reason': 'non_polish_direct_category',
             'record_language': 'pl',
+            'product_name': [{'text': 'Produkt'}],
             'direct_category': 'Tea',
             'detected_category_language': 'eng_Latn',
+            'detected_category_language_score': pytest.approx(0.99),
             'categories': ['Food', 'Tea'],
         }
 

@@ -165,9 +165,10 @@ the fastText language model classifies the product's direct category name as
 the download, so each unique direct category is classified at most once.
 
 The workflow also uploads `rejected_products.jsonl`. Each line describes one
-rejected product and includes its code, rejection reason, record language,
-direct category, detected category language, and category path. Existing
-MongoDB records are not deleted when a product is rejected by a later run.
+rejected product and includes its code, product name, rejection reason, record
+language, direct category, detected category language and confidence score, and
+category path. Existing MongoDB records are not deleted when a product is
+rejected by a later run.
 
 ### Search Results
 Search results are saved as JSON files with the following structure:
