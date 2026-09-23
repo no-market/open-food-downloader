@@ -43,7 +43,10 @@ jobs:
       run: make install
 
     - name: Prepare product artifacts
-      run: touch eligible_products.jsonl rejected_products.jsonl
+      run: |
+        touch eligible_products.jsonl
+        touch non_polish_direct_category_rejections.jsonl
+        touch other_rejections.jsonl
         
     - name: Download and display food records
       env:
@@ -77,7 +80,8 @@ jobs:
           unique_categories.json
           unique_last_categories.json
           direct_category_product_counts.json
-          rejected_products.jsonl
+          non_polish_direct_category_rejections.jsonl
+          other_rejections.jsonl
         retention-days: 30
         
     - name: Upload run summary
@@ -87,6 +91,8 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
         echo "📊 **Eligible Products**: $(wc -l < eligible_products.jsonl)" >> $GITHUB_STEP_SUMMARY
+        echo "🚫 **Non-Polish Category and Name Rejections**: $(wc -l < non_polish_direct_category_rejections.jsonl)" >> $GITHUB_STEP_SUMMARY
+        echo "⚠️ **Other Rejections**: $(wc -l < other_rejections.jsonl)" >> $GITHUB_STEP_SUMMARY
         if [ "${{ inputs.save_to_mongo || 'true' }}" = "true" ]; then
           echo "💾 **MongoDB Storage**: ENABLED" >> $GITHUB_STEP_SUMMARY
         else
@@ -100,5 +106,6 @@ jobs:
         echo "  - **Categories Hierarchy**: categories_hierarchy.json" >> $GITHUB_STEP_SUMMARY
         echo "  - **Unique Categories**: unique_categories.json" >> $GITHUB_STEP_SUMMARY
         echo "  - **Direct Category Product Counts**: direct_category_product_counts.json" >> $GITHUB_STEP_SUMMARY
-        echo "  - **Rejected Products**: rejected_products.jsonl" >> $GITHUB_STEP_SUMMARY
+        echo "  - **Language Rejections**: non_polish_direct_category_rejections.jsonl" >> $GITHUB_STEP_SUMMARY
+        echo "  - **Other Rejections**: other_rejections.jsonl" >> $GITHUB_STEP_SUMMARY
         echo "⏰ **Timestamp**: $(date -u)" >> $GITHUB_STEP_SUMMARY

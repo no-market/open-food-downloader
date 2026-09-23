@@ -12,6 +12,8 @@ from download_products import (
     CategoryLanguageError,
     ProductEligibilityFilter,
     get_direct_category,
+    get_preferred_product_name,
+    get_rejection_output_group,
     is_valid_product,
     write_eligible_product_jsonl,
     write_rejected_product_jsonl,
@@ -232,12 +234,44 @@ class TestDirectCategory:
         assert get_direct_category(category_list) is None
 
 
+class TestPreferredProductName:
+    def test_prefers_polish_name_over_main_and_first(self):
+        product_names = [
+            {'lang': 'en', 'text': 'Onions'},
+            {'lang': 'main', 'text': 'Red onions'},
+            {'lang': 'pl', 'text': 'Czerwona cebula'},
+        ]
+
+        assert get_preferred_product_name(product_names) == 'Czerwona cebula'
+
+    def test_falls_back_to_main_name(self):
+        product_names = [
+            {'lang': 'en', 'text': 'Onions'},
+            {'lang': 'main', 'text': 'Red onions'},
+        ]
+
+        assert get_preferred_product_name(product_names) == 'Red onions'
+
+    def test_falls_back_to_first_non_empty_name(self):
+        product_names = [
+            {'lang': 'en', 'text': '  '},
+            {'lang': 'de', 'text': 'Zwiebeln'},
+            {'lang': 'fr', 'text': 'Oignons'},
+        ]
+
+        assert get_preferred_product_name(product_names) == 'Zwiebeln'
+
+
 class TestProductEligibilityFilter:
     def test_accepts_product_with_polish_direct_category(self):
         class PolishLanguageModel:
             def predict(self, text, k=1):
-                assert text == 'Herbaty aromatyzowane'
-                return ['__label__pol_Latn'], [0.35]
+                predictions = {
+                    'Herbaty aromatyzowane': ('pol_Latn', 0.35),
+                    'Herbata': ('pol_Latn', 0.91),
+                }
+                language, score = predictions[text]
+                return [f'__label__{language}'], [score]
 
         product_filter = ProductEligibilityFilter(PolishLanguageModel())
 
@@ -253,6 +287,55 @@ class TestProductEligibilityFilter:
         assert assessment.direct_category == 'Herbaty aromatyzowane'
         assert assessment.detected_category_language == 'pol_Latn'
         assert assessment.detected_category_language_score == pytest.approx(0.35)
+        assert assessment.product_name_for_language_detection == 'Herbata'
+        assert assessment.detected_product_name_language == 'pol_Latn'
+        assert assessment.detected_product_name_language_score == pytest.approx(0.91)
+
+    def test_accepts_polish_product_name_when_direct_category_is_not_polish(self):
+        class MixedLanguageModel:
+            def predict(self, text, k=1):
+                predictions = {
+                    'Makarony': ('ceb_Latn', 0.92),
+                    'Makaron pełnoziarnisty': ('pol_Latn', 0.98),
+                }
+                language, score = predictions[text]
+                return [f'__label__{language}'], [score]
+
+        assessment = ProductEligibilityFilter(MixedLanguageModel()).assess({
+            'lang': 'pl',
+            'product_name': [
+                {'lang': 'main', 'text': 'Wholegrain pasta'},
+                {'lang': 'pl', 'text': 'Makaron pełnoziarnisty'},
+            ],
+            'categories': 'Żywność, Makarony',
+        })
+
+        assert assessment.eligible is True
+        assert assessment.reason is None
+        assert assessment.detected_category_language == 'ceb_Latn'
+        assert assessment.product_name_for_language_detection == 'Makaron pełnoziarnisty'
+        assert assessment.detected_product_name_language == 'pol_Latn'
+
+    def test_accepts_polish_direct_category_when_product_name_is_not_polish(self):
+        class MixedLanguageModel:
+            def predict(self, text, k=1):
+                predictions = {
+                    'Cebula': ('pol_Latn', 0.97),
+                    'Red onions': ('eng_Latn', 0.99),
+                }
+                language, score = predictions[text]
+                return [f'__label__{language}'], [score]
+
+        assessment = ProductEligibilityFilter(MixedLanguageModel()).assess({
+            'lang': 'pl',
+            'product_name': [{'lang': 'main', 'text': 'Red onions'}],
+            'categories': 'Żywność, Cebula',
+        })
+
+        assert assessment.eligible is True
+        assert assessment.reason is None
+        assert assessment.detected_category_language == 'pol_Latn'
+        assert assessment.detected_product_name_language == 'eng_Latn'
 
     def test_reuses_language_for_repeated_direct_category(self):
         class CountingLanguageModel:
@@ -283,7 +366,11 @@ class TestProductEligibilityFilter:
         assert second_assessment.eligible is True
         assert first_assessment.detected_category_language_score == pytest.approx(0.99)
         assert second_assessment.detected_category_language_score == pytest.approx(0.99)
-        assert model.inputs == ['Herbaty aromatyzowane']
+        assert model.inputs == [
+            'Herbaty aromatyzowane',
+            'Pierwszy produkt',
+            'Drugi produkt',
+        ]
 
     def test_rejects_missing_product_name_without_using_model(self):
         class UnusedLanguageModel:
@@ -354,8 +441,18 @@ class TestProductEligibilityFilter:
             'direct_category': 'Tea',
             'detected_category_language': 'eng_Latn',
             'detected_category_language_score': pytest.approx(0.99),
+            'product_name_for_language_detection': 'Produkt',
+            'detected_product_name_language': 'eng_Latn',
+            'detected_product_name_language_score': pytest.approx(0.99),
             'categories': ['Food', 'Tea'],
         }
+
+    def test_routes_language_rejections_separately_from_other_rejections(self):
+        assert (
+            get_rejection_output_group('non_polish_direct_category')
+            == 'non_polish_direct_category'
+        )
+        assert get_rejection_output_group('missing_product_name') == 'other'
 
     def test_writes_eligible_product_as_jsonl(self):
         product = {

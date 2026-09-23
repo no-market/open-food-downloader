@@ -73,7 +73,18 @@ def test_workflow_uploads_generated_eligible_products_jsonl():
     """The artifact contains real filtered products instead of static samples."""
     workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
 
-    assert "touch eligible_products.jsonl rejected_products.jsonl" in workflow
+    assert "touch eligible_products.jsonl" in workflow
     assert "**Eligible Products**: eligible_products.jsonl" in workflow
     assert "$(wc -l < eligible_products.jsonl)" in workflow
     assert "\n          products.json\n" not in workflow
+
+
+def test_workflow_uploads_separate_rejection_files():
+    """Language-based rejections are separate from all other reasons."""
+    workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+
+    assert "touch non_polish_direct_category_rejections.jsonl" in workflow
+    assert "touch other_rejections.jsonl" in workflow
+    assert "**Language Rejections**: non_polish_direct_category_rejections.jsonl" in workflow
+    assert "**Other Rejections**: other_rejections.jsonl" in workflow
+    assert "\n          rejected_products.jsonl\n" not in workflow
