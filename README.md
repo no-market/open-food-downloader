@@ -154,7 +154,8 @@ The script stores product records directly in a MongoDB collection named `produc
 - And other OpenFoodFacts fields
 
 ### Category Output Files
-The download workflow uploads category output files as artifacts:
+The download workflow uploads product and category output files as artifacts:
+- `eligible_products.jsonl` - one complete product document per line for every product that passed eligibility filtering
 - `unique_categories.json` - all unique category names found in eligible products
 - `unique_last_categories.json` - each direct category mapped to its full category path
 - `direct_category_product_counts.json` - each direct category mapped to the number of products assigned directly to that category
@@ -164,8 +165,9 @@ the fastText language model classifies the product's direct category name as
 `pol_Latn`. Category language results are cached in memory for the duration of
 the download, so each unique direct category is classified at most once.
 
-The workflow also uploads `rejected_products.jsonl`. Each line describes one
-rejected product and includes its code, product name, rejection reason, record
+The workflow also uploads `rejected_products.jsonl`. Together, the two JSONL
+files partition the evaluated records into eligible and rejected products. Each
+rejected-product line includes its code, product name, rejection reason, record
 language, direct category, detected category language and confidence score, and
 category path. Existing MongoDB records are not deleted when a product is
 rejected by a later run.
