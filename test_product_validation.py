@@ -12,11 +12,13 @@ from download_products import (
     CategoryLanguageError,
     ProductEligibilityFilter,
     add_category_path_to_hierarchy,
+    add_category_path_with_direct_count,
     get_direct_category,
     get_preferred_product_name,
     get_rejection_output_group,
     is_valid_product,
     save_categories_hierarchy_to_json,
+    save_categories_hierarchy_with_direct_counts_to_json,
     write_eligible_product_jsonl,
     write_rejected_product_jsonl,
 )
@@ -279,6 +281,60 @@ class TestCategoryHierarchy:
 
         saved_hierarchy = json.loads(
             (tmp_path / 'categories_hierarchy.json').read_text(encoding='utf-8')
+        )
+        assert saved_hierarchy == hierarchy
+
+
+class TestCategoryHierarchyWithDirectCounts:
+    def test_counts_only_products_assigned_directly_to_each_path(self):
+        hierarchy = {}
+
+        add_category_path_with_direct_count(hierarchy, ['Żywność', 'Zboża'])
+        add_category_path_with_direct_count(
+            hierarchy,
+            ['Żywność', 'en:Cereals', 'Zboża', 'Makarony'],
+        )
+        add_category_path_with_direct_count(
+            hierarchy,
+            ['Żywność', 'Zboża', 'Makarony'],
+        )
+
+        assert hierarchy == {
+            'Żywność': {
+                'Zboża': {
+                    '_direct_product_count': 1,
+                    'Makarony': {
+                        '_direct_product_count': 2,
+                    },
+                },
+            },
+        }
+
+    def test_keeps_counts_separate_for_same_category_name_on_different_paths(self):
+        hierarchy = {}
+
+        add_category_path_with_direct_count(hierarchy, ['Żywność', 'Produkty'])
+        add_category_path_with_direct_count(hierarchy, ['Napoje', 'Produkty'])
+
+        assert hierarchy['Żywność']['Produkty']['_direct_product_count'] == 1
+        assert hierarchy['Napoje']['Produkty']['_direct_product_count'] == 1
+
+    def test_saves_hierarchy_with_direct_counts_as_json(self, tmp_path, monkeypatch):
+        hierarchy = {
+            'Żywność': {
+                'Zboża': {
+                    '_direct_product_count': 3,
+                },
+            },
+        }
+        monkeypatch.chdir(tmp_path)
+
+        save_categories_hierarchy_with_direct_counts_to_json(hierarchy)
+
+        saved_hierarchy = json.loads(
+            (
+                tmp_path / 'categories_hierarchy_with_direct_counts.json'
+            ).read_text(encoding='utf-8')
         )
         assert saved_hierarchy == hierarchy
 

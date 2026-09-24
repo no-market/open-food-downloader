@@ -77,6 +77,7 @@ jobs:
           food_groups_hierarchy.json
           unique_food_groups.json
           categories_hierarchy.json
+          categories_hierarchy_with_direct_counts.json
           unique_categories.json
           unique_last_categories.json
           direct_category_product_counts.json
@@ -104,6 +105,7 @@ jobs:
         echo "  - **Food Groups Hierarchy**: food_groups_hierarchy.json" >> $GITHUB_STEP_SUMMARY
         echo "  - **Unique Food Groups**: unique_food_groups.json" >> $GITHUB_STEP_SUMMARY
         echo "  - **Categories Hierarchy**: categories_hierarchy.json" >> $GITHUB_STEP_SUMMARY
+        echo "  - **Categories Hierarchy with Direct Counts**: categories_hierarchy_with_direct_counts.json" >> $GITHUB_STEP_SUMMARY
         echo "  - **Unique Categories**: unique_categories.json" >> $GITHUB_STEP_SUMMARY
         echo "  - **Direct Category Product Counts**: direct_category_product_counts.json" >> $GITHUB_STEP_SUMMARY
         echo "  - **Language Rejections**: non_polish_direct_category_rejections.jsonl" >> $GITHUB_STEP_SUMMARY
