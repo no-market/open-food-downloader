@@ -67,3 +67,13 @@ def test_download_step_wires_hf_secret_and_does_not_print_it(tmp_path):
     assert make_marker.exists()
     assert token not in result.stdout
     assert token not in result.stderr
+
+
+def test_workflow_uploads_generated_eligible_products_jsonl():
+    """The artifact contains real filtered products instead of static samples."""
+    workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+
+    assert "touch eligible_products.jsonl rejected_products.jsonl" in workflow
+    assert "**Eligible Products**: eligible_products.jsonl" in workflow
+    assert "$(wc -l < eligible_products.jsonl)" in workflow
+    assert "\n          products.json\n" not in workflow

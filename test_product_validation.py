@@ -13,6 +13,7 @@ from download_products import (
     ProductEligibilityFilter,
     get_direct_category,
     is_valid_product,
+    write_eligible_product_jsonl,
     write_rejected_product_jsonl,
 )
 
@@ -355,6 +356,20 @@ class TestProductEligibilityFilter:
             'detected_category_language_score': pytest.approx(0.99),
             'categories': ['Food', 'Tea'],
         }
+
+    def test_writes_eligible_product_as_jsonl(self):
+        product = {
+            '_id': 'eligible-product',
+            'lang': 'pl',
+            'product_name': [{'lang': 'pl', 'text': 'Produkt'}],
+            'categories': ['Żywność', 'Przekąski'],
+        }
+        output = io.StringIO()
+
+        write_eligible_product_jsonl(output, product)
+
+        assert output.getvalue().endswith('\n')
+        assert json.loads(output.getvalue()) == product
 
     def test_language_prediction_failure_stops_assessment(self):
         class FailingLanguageModel:

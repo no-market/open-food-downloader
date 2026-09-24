@@ -42,8 +42,8 @@ jobs:
     - name: Install dependencies
       run: make install
 
-    - name: Prepare rejected products artifact
-      run: touch rejected_products.jsonl
+    - name: Prepare product artifacts
+      run: touch eligible_products.jsonl rejected_products.jsonl
         
     - name: Download and display food records
       env:
@@ -70,7 +70,7 @@ jobs:
       with:
         name: food-data-outputs
         path: |
-          products.json
+          eligible_products.jsonl
           food_groups_hierarchy.json
           unique_food_groups.json
           categories_hierarchy.json
@@ -86,7 +86,7 @@ jobs:
         echo "## 🍕 Food Records Download Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "**Status**: ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
-        echo "📊 **Records**: 5 food product records downloaded and displayed" >> $GITHUB_STEP_SUMMARY
+        echo "📊 **Eligible Products**: $(wc -l < eligible_products.jsonl)" >> $GITHUB_STEP_SUMMARY
         if [ "${{ inputs.save_to_mongo || 'true' }}" = "true" ]; then
           echo "💾 **MongoDB Storage**: ENABLED" >> $GITHUB_STEP_SUMMARY
         else
@@ -94,7 +94,7 @@ jobs:
         fi
         echo "🔗 **Source**: OpenFoodFacts dataset via Hugging Face" >> $GITHUB_STEP_SUMMARY
         echo "📁 **Artifacts**: All outputs saved as 'food-data-outputs' artifact" >> $GITHUB_STEP_SUMMARY
-        echo "  - **Products**: products.json" >> $GITHUB_STEP_SUMMARY
+        echo "  - **Eligible Products**: eligible_products.jsonl" >> $GITHUB_STEP_SUMMARY
         echo "  - **Food Groups Hierarchy**: food_groups_hierarchy.json" >> $GITHUB_STEP_SUMMARY
         echo "  - **Unique Food Groups**: unique_food_groups.json" >> $GITHUB_STEP_SUMMARY
         echo "  - **Categories Hierarchy**: categories_hierarchy.json" >> $GITHUB_STEP_SUMMARY

@@ -139,6 +139,12 @@ def write_rejected_product_jsonl(stream, record, assessment):
     stream.write('\n')
 
 
+def write_eligible_product_jsonl(stream, product):
+    """Write one filtered product document as a JSON Lines record."""
+    json.dump(product, stream, ensure_ascii=False)
+    stream.write('\n')
+
+
 def load_category_language_model():
     """Load the fastText language model used for direct-category filtering."""
     try:
@@ -164,6 +170,7 @@ def load_category_language_model():
 def download_from_huggingface():
     """Download records from the OpenFoodFacts dataset on Hugging Face and optionally store in MongoDB."""
     client = None
+    eligible_products_file = None
     rejected_products_file = None
     try:
         from datasets import load_dataset
@@ -208,6 +215,7 @@ def download_from_huggingface():
         dataset = dataset.filter(lambda record: record.get('lang') == 'pl')
 
         product_filter = ProductEligibilityFilter(load_category_language_model())
+        eligible_products_file = open('eligible_products.jsonl', 'w', encoding='utf-8')
         rejected_products_file = open('rejected_products.jsonl', 'w', encoding='utf-8')
         
         print("Dataset loaded successfully!")
@@ -303,6 +311,10 @@ def download_from_huggingface():
                 'nutriscore_score': record.get('nutriscore_score'),
                 'search_string': search_string,
             }
+
+            # Preserve every product that passed eligibility filtering, even when
+            # optional MongoDB storage is disabled or an upsert later fails.
+            write_eligible_product_jsonl(eligible_products_file, product)
             
             # Store product directly in MongoDB (upsert to handle duplicates) if enabled
             if save_to_mongo and collection is not None:
@@ -378,6 +390,8 @@ def download_from_huggingface():
         print(f"Error downloading from Hugging Face: {e}")
         return []
     finally:
+        if eligible_products_file:
+            eligible_products_file.close()
         if rejected_products_file:
             rejected_products_file.close()
         if client:
