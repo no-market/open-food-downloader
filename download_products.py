@@ -24,9 +24,12 @@ class CategoryLanguageError(RuntimeError):
 class ProductAssessment:
     eligible: bool
     reason: Optional[str]
-    direct_category: Optional[str]
-    detected_category_language: Optional[str]
-    detected_category_language_score: Optional[float]
+    direct_category: Optional[str] = None
+    detected_category_language: Optional[str] = None
+    detected_category_language_score: Optional[float] = None
+    product_name_for_language_detection: Optional[str] = None
+    detected_product_name_language: Optional[str] = None
+    detected_product_name_language_score: Optional[float] = None
 
 
 def _parse_categories(record):
@@ -77,49 +80,92 @@ def get_direct_category(category_list):
     return filtered_categories[-1]
 
 
+def get_preferred_product_name(product_names):
+    """Return the `pl` name, then `main`, then the first non-empty name."""
+    if not isinstance(product_names, list):
+        return None
+
+    valid_names = [
+        name
+        for name in product_names
+        if isinstance(name, dict)
+        and isinstance(name.get('text'), str)
+        and name['text'].strip()
+    ]
+    for preferred_language in ('pl', 'main'):
+        for name in valid_names:
+            if name.get('lang') == preferred_language:
+                return name['text'].strip()
+
+    if valid_names:
+        return valid_names[0]['text'].strip()
+    return None
+
+
 class ProductEligibilityFilter:
-    """Decide whether products belong to a Polish direct category."""
+    """Accept products with a Polish direct category or preferred product name."""
 
     def __init__(self, language_model):
         self._language_model = language_model
-        self._language_prediction_by_category = {}
+        self._language_prediction_by_text = {}
+
+    def _predict_language(self, text, field_name):
+        prediction = self._language_prediction_by_text.get(text)
+        if prediction is not None:
+            return prediction
+
+        try:
+            labels, scores = self._language_model.predict(text, k=1)
+            if not labels or not scores:
+                raise ValueError('language model returned no prediction')
+            prediction = (
+                labels[0].replace('__label__', ''),
+                float(scores[0]),
+            )
+        except Exception as exc:
+            raise CategoryLanguageError(
+                f"Could not determine language for {field_name} '{text}'"
+            ) from exc
+
+        self._language_prediction_by_text[text] = prediction
+        return prediction
 
     def assess(self, record):
         rejection_reason = _get_basic_rejection_reason(record)
         if rejection_reason:
-            return ProductAssessment(False, rejection_reason, None, None, None)
+            return ProductAssessment(False, rejection_reason)
 
         if record.get('lang') != 'pl':
-            return ProductAssessment(False, 'non_polish_record_language', None, None, None)
+            return ProductAssessment(False, 'non_polish_record_language')
 
         category_list = _parse_categories(record)
         direct_category = get_direct_category(category_list)
         if direct_category is None:
-            return ProductAssessment(False, 'missing_direct_category', None, None, None)
+            return ProductAssessment(False, 'missing_direct_category')
 
-        prediction = self._language_prediction_by_category.get(direct_category)
-        if prediction is None:
-            try:
-                labels, scores = self._language_model.predict(direct_category, k=1)
-                if not labels or not scores:
-                    raise ValueError('language model returned no prediction')
-                language = labels[0].replace('__label__', '')
-                language_score = float(scores[0])
-            except Exception as exc:
-                raise CategoryLanguageError(
-                    f"Could not determine language for direct category '{direct_category}'"
-                ) from exc
-            prediction = (language, language_score)
-            self._language_prediction_by_category[direct_category] = prediction
-
-        language, language_score = prediction
+        product_name = get_preferred_product_name(record.get('product_name', []))
+        category_language, category_language_score = self._predict_language(
+            direct_category,
+            'direct category',
+        )
+        product_name_language, product_name_language_score = self._predict_language(
+            product_name,
+            'product name',
+        )
+        eligible = (
+            category_language == POLISH_LANGUAGE_LABEL
+            or product_name_language == POLISH_LANGUAGE_LABEL
+        )
 
         return ProductAssessment(
-            eligible=language == POLISH_LANGUAGE_LABEL,
-            reason=None if language == POLISH_LANGUAGE_LABEL else 'non_polish_direct_category',
+            eligible=eligible,
+            reason=None if eligible else 'non_polish_direct_category',
             direct_category=direct_category,
-            detected_category_language=language,
-            detected_category_language_score=language_score,
+            detected_category_language=category_language,
+            detected_category_language_score=category_language_score,
+            product_name_for_language_detection=product_name,
+            detected_product_name_language=product_name_language,
+            detected_product_name_language_score=product_name_language_score,
         )
 
 
@@ -133,6 +179,9 @@ def write_rejected_product_jsonl(stream, record, assessment):
         'direct_category': assessment.direct_category,
         'detected_category_language': assessment.detected_category_language,
         'detected_category_language_score': assessment.detected_category_language_score,
+        'product_name_for_language_detection': assessment.product_name_for_language_detection,
+        'detected_product_name_language': assessment.detected_product_name_language,
+        'detected_product_name_language_score': assessment.detected_product_name_language_score,
         'categories': _parse_categories(record),
     }
     json.dump(rejection, stream, ensure_ascii=False)
@@ -143,6 +192,13 @@ def write_eligible_product_jsonl(stream, product):
     """Write one filtered product document as a JSON Lines record."""
     json.dump(product, stream, ensure_ascii=False)
     stream.write('\n')
+
+
+def get_rejection_output_group(reason):
+    """Separate language rejections from all other rejection reasons."""
+    if reason == 'non_polish_direct_category':
+        return 'non_polish_direct_category'
+    return 'other'
 
 
 def load_category_language_model():
@@ -171,7 +227,7 @@ def download_from_huggingface():
     """Download records from the OpenFoodFacts dataset on Hugging Face and optionally store in MongoDB."""
     client = None
     eligible_products_file = None
-    rejected_products_file = None
+    rejected_products_files = {}
     try:
         from datasets import load_dataset
         
@@ -216,7 +272,16 @@ def download_from_huggingface():
 
         product_filter = ProductEligibilityFilter(load_category_language_model())
         eligible_products_file = open('eligible_products.jsonl', 'w', encoding='utf-8')
-        rejected_products_file = open('rejected_products.jsonl', 'w', encoding='utf-8')
+        rejected_products_files['non_polish_direct_category'] = open(
+            'non_polish_direct_category_rejections.jsonl',
+            'w',
+            encoding='utf-8',
+        )
+        rejected_products_files['other'] = open(
+            'other_rejections.jsonl',
+            'w',
+            encoding='utf-8',
+        )
         
         print("Dataset loaded successfully!")
         if save_to_mongo:
@@ -231,7 +296,10 @@ def download_from_huggingface():
         direct_category_product_counts = {}  # Count products by their direct category only
         
         # Process records and optionally store directly in MongoDB
-        rejected_count = 0
+        rejected_counts = {
+            'non_polish_direct_category': 0,
+            'other': 0,
+        }
         processed_count = 0
         for i, record in enumerate(dataset):
             # if i >= 5:
@@ -239,9 +307,14 @@ def download_from_huggingface():
             
             assessment = product_filter.assess(record)
             if not assessment.eligible:
-                rejected_count += 1
-                write_rejected_product_jsonl(rejected_products_file, record, assessment)
-                if rejected_count <= 10:
+                rejection_group = get_rejection_output_group(assessment.reason)
+                rejected_counts[rejection_group] += 1
+                write_rejected_product_jsonl(
+                    rejected_products_files[rejection_group],
+                    record,
+                    assessment,
+                )
+                if sum(rejected_counts.values()) <= 10:
                     print(
                         f"Rejected product {record.get('code', 'unknown')}: "
                         f"{assessment.reason}"
@@ -303,6 +376,12 @@ def download_from_huggingface():
                 'quantity': record.get('quantity'),
                 'categories_tags': record.get('categories_tags'),
                 'categories': category_list,
+                'direct_category': assessment.direct_category,
+                'detected_category_language': assessment.detected_category_language,
+                'detected_category_language_score': assessment.detected_category_language_score,
+                'product_name_for_language_detection': assessment.product_name_for_language_detection,
+                'detected_product_name_language': assessment.detected_product_name_language,
+                'detected_product_name_language_score': assessment.detected_product_name_language_score,
                 'labels_tags': record.get('labels_tags'),
                 'labels': [l.strip() for l in record.get('labels', '').split(',') if record.get('labels')] if record.get('labels') else [],
                 'popularity_key': record.get('popularity_key'),
@@ -366,10 +445,14 @@ def download_from_huggingface():
         else:
             print(f"Successfully processed {processed_count} records (MongoDB storage was disabled)")
         
+        rejected_count = sum(rejected_counts.values())
         if rejected_count > 0:
             print(
-                f"Rejected {rejected_count} products; details saved to "
-                "'rejected_products.jsonl'"
+                f"Rejected {rejected_count} products: "
+                f"{rejected_counts['non_polish_direct_category']} language rejections "
+                "saved to 'non_polish_direct_category_rejections.jsonl', and "
+                f"{rejected_counts['other']} other rejections saved to "
+                "'other_rejections.jsonl'"
             )
 
         save_unique_food_groups_to_json(unique_food_groups)
@@ -392,7 +475,7 @@ def download_from_huggingface():
     finally:
         if eligible_products_file:
             eligible_products_file.close()
-        if rejected_products_file:
+        for rejected_products_file in rejected_products_files.values():
             rejected_products_file.close()
         if client:
             client.close()
