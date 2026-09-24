@@ -88,3 +88,14 @@ def test_workflow_uploads_separate_rejection_files():
     assert "**Language Rejections**: non_polish_direct_category_rejections.jsonl" in workflow
     assert "**Other Rejections**: other_rejections.jsonl" in workflow
     assert "\n          rejected_products.jsonl\n" not in workflow
+
+
+def test_workflow_uploads_category_hierarchy_with_direct_counts():
+    """The artifact includes the hierarchy enriched with direct-only counts."""
+    workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+
+    assert "\n          categories_hierarchy_with_direct_counts.json\n" in workflow
+    assert (
+        "**Categories Hierarchy with Direct Counts**: "
+        "categories_hierarchy_with_direct_counts.json"
+    ) in workflow

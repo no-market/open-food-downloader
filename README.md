@@ -158,6 +158,7 @@ The download workflow uploads product and category output files as artifacts:
 
 - `eligible_products.jsonl` - one complete product document per line for every product that passed eligibility filtering
 - `categories_hierarchy.json` - nested category tree merged from eligible product paths, excluding language-prefixed tags
+- `categories_hierarchy_with_direct_counts.json` - the same nested tree with `_direct_product_count` on categories that have products assigned directly to them; child counts are not rolled up into parents
 - `unique_categories.json` - all unique category names found in eligible products
 - `unique_last_categories.json` - each direct category mapped to its full category path
 - `direct_category_product_counts.json` - each direct category mapped to the number of products assigned directly to that category

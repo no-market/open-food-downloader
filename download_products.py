@@ -14,6 +14,7 @@ from typing import Optional
 POLISH_LANGUAGE_LABEL = 'pol_Latn'
 CATEGORY_LANGUAGE_MODEL_REPO = 'facebook/fasttext-language-identification'
 CATEGORY_LANGUAGE_MODEL_FILE = 'model.bin'
+DIRECT_PRODUCT_COUNT_KEY = '_direct_product_count'
 
 
 class CategoryLanguageError(RuntimeError):
@@ -90,6 +91,25 @@ def add_category_path_to_hierarchy(hierarchy, category_list):
         if not category or ':' in category:
             continue
         current_level = current_level.setdefault(category, {})
+
+
+def add_category_path_with_direct_count(hierarchy, category_list):
+    """Merge one category path and count the product at its terminal node."""
+    current_level = hierarchy
+    has_category = False
+    for category in category_list:
+        if not isinstance(category, str):
+            continue
+        category = category.strip()
+        if not category or ':' in category:
+            continue
+        current_level = current_level.setdefault(category, {})
+        has_category = True
+
+    if has_category:
+        current_level[DIRECT_PRODUCT_COUNT_KEY] = (
+            current_level.get(DIRECT_PRODUCT_COUNT_KEY, 0) + 1
+        )
 
 
 def get_preferred_product_name(product_names):
@@ -254,9 +274,10 @@ def download_from_huggingface():
             # Get MongoDB URI from environment variable
             mongo_uri = os.getenv('MONGO_URI')
             if not mongo_uri:
-                print("Error: MONGO_URI environment variable not set")
-                print("Please set the MongoDB connection URI in the MONGO_URI environment variable")
-                return []
+                raise RuntimeError(
+                    "MONGO_URI environment variable is required when "
+                    "SAVE_TO_MONGO is enabled"
+                )
             
             # Initialize MongoDB connection
             try:
@@ -269,7 +290,7 @@ def download_from_huggingface():
                 print("Successfully connected to MongoDB")
             except (ConnectionFailure, ConfigurationError) as e:
                 print(f"Error connecting to MongoDB: {e}")
-                return []
+                raise
         else:
             print("SAVE_TO_MONGO is disabled - data will be processed but not stored in MongoDB")
         
@@ -305,6 +326,7 @@ def download_from_huggingface():
         unique_food_groups = set()  # Collect unique food group tags
         unique_categories = set()  # Collect unique category tags
         categories_hierarchy = {}  # Merge eligible category paths into a nested tree
+        categories_hierarchy_with_direct_counts = {}
         unique_last_categories = {}  # Collect unique last category mapping to full path
         direct_category_product_counts = {}  # Count products by their direct category only
         
@@ -427,6 +449,10 @@ def download_from_huggingface():
                 # Add each category to the unique set
                 unique_categories.update(category_list)
                 add_category_path_to_hierarchy(categories_hierarchy, category_list)
+                add_category_path_with_direct_count(
+                    categories_hierarchy_with_direct_counts,
+                    category_list,
+                )
                 
                 # Build mapping from last category to full path, skipping categories with ":"
                 if category_list:
@@ -471,6 +497,9 @@ def download_from_huggingface():
 
         save_unique_food_groups_to_json(unique_food_groups)
         save_categories_hierarchy_to_json(categories_hierarchy)
+        save_categories_hierarchy_with_direct_counts_to_json(
+            categories_hierarchy_with_direct_counts
+        )
         save_unique_categories_to_json(unique_categories)
         save_unique_last_categories_to_json(unique_last_categories)
         save_direct_category_product_counts_to_json(direct_category_product_counts)
@@ -481,12 +510,12 @@ def download_from_huggingface():
         
     except ImportError:
         print("Required packages not installed. Please run: pip install -r requirements.txt")
-        return []
+        raise
     except CategoryLanguageError:
         raise
     except Exception as e:
         print(f"Error downloading from Hugging Face: {e}")
-        return []
+        raise
     finally:
         if eligible_products_file:
             eligible_products_file.close()
@@ -547,6 +576,29 @@ def save_categories_hierarchy_to_json(categories_hierarchy: dict) -> None:
         )
     except Exception as e:
         print(f"Error saving categories hierarchy: {e}")
+
+
+def save_categories_hierarchy_with_direct_counts_to_json(
+    categories_hierarchy: dict,
+) -> None:
+    """Save the hierarchy with direct-only product counts on category nodes."""
+    filename = "categories_hierarchy_with_direct_counts.json"
+
+    try:
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(
+                categories_hierarchy,
+                f,
+                indent=2,
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        print(
+            "Categories hierarchy with direct product counts "
+            f"({len(categories_hierarchy)} root categories) saved to '{filename}'"
+        )
+    except Exception as e:
+        print(f"Error saving categories hierarchy with direct product counts: {e}")
 
 
 
