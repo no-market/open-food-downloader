@@ -80,6 +80,18 @@ def get_direct_category(category_list):
     return filtered_categories[-1]
 
 
+def add_category_path_to_hierarchy(hierarchy, category_list):
+    """Merge one category path into a nested hierarchy, skipping language tags."""
+    current_level = hierarchy
+    for category in category_list:
+        if not isinstance(category, str):
+            continue
+        category = category.strip()
+        if not category or ':' in category:
+            continue
+        current_level = current_level.setdefault(category, {})
+
+
 def get_preferred_product_name(product_names):
     """Return the `pl` name, then `main`, then the first non-empty name."""
     if not isinstance(product_names, list):
@@ -292,6 +304,7 @@ def download_from_huggingface():
         
         unique_food_groups = set()  # Collect unique food group tags
         unique_categories = set()  # Collect unique category tags
+        categories_hierarchy = {}  # Merge eligible category paths into a nested tree
         unique_last_categories = {}  # Collect unique last category mapping to full path
         direct_category_product_counts = {}  # Count products by their direct category only
         
@@ -413,6 +426,7 @@ def download_from_huggingface():
             if category_list:
                 # Add each category to the unique set
                 unique_categories.update(category_list)
+                add_category_path_to_hierarchy(categories_hierarchy, category_list)
                 
                 # Build mapping from last category to full path, skipping categories with ":"
                 if category_list:
@@ -456,6 +470,7 @@ def download_from_huggingface():
             )
 
         save_unique_food_groups_to_json(unique_food_groups)
+        save_categories_hierarchy_to_json(categories_hierarchy)
         save_unique_categories_to_json(unique_categories)
         save_unique_last_categories_to_json(unique_last_categories)
         save_direct_category_product_counts_to_json(direct_category_product_counts)
@@ -511,6 +526,27 @@ def save_unique_categories_to_json(unique_categories: set) -> None:
         print(f"Unique categories ({len(unique_list)} tags) saved to '{filename}'")
     except Exception as e:
         print(f"Error saving unique categories: {e}")
+
+
+def save_categories_hierarchy_to_json(categories_hierarchy: dict) -> None:
+    """Save the nested hierarchy built from eligible product category paths."""
+    filename = "categories_hierarchy.json"
+
+    try:
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(
+                categories_hierarchy,
+                f,
+                indent=2,
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        print(
+            f"Categories hierarchy ({len(categories_hierarchy)} root categories) "
+            f"saved to '{filename}'"
+        )
+    except Exception as e:
+        print(f"Error saving categories hierarchy: {e}")
 
 
 
