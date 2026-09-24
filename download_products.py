@@ -274,9 +274,10 @@ def download_from_huggingface():
             # Get MongoDB URI from environment variable
             mongo_uri = os.getenv('MONGO_URI')
             if not mongo_uri:
-                print("Error: MONGO_URI environment variable not set")
-                print("Please set the MongoDB connection URI in the MONGO_URI environment variable")
-                return []
+                raise RuntimeError(
+                    "MONGO_URI environment variable is required when "
+                    "SAVE_TO_MONGO is enabled"
+                )
             
             # Initialize MongoDB connection
             try:
@@ -289,7 +290,7 @@ def download_from_huggingface():
                 print("Successfully connected to MongoDB")
             except (ConnectionFailure, ConfigurationError) as e:
                 print(f"Error connecting to MongoDB: {e}")
-                return []
+                raise
         else:
             print("SAVE_TO_MONGO is disabled - data will be processed but not stored in MongoDB")
         
@@ -509,12 +510,12 @@ def download_from_huggingface():
         
     except ImportError:
         print("Required packages not installed. Please run: pip install -r requirements.txt")
-        return []
+        raise
     except CategoryLanguageError:
         raise
     except Exception as e:
         print(f"Error downloading from Hugging Face: {e}")
-        return []
+        raise
     finally:
         if eligible_products_file:
             eligible_products_file.close()
